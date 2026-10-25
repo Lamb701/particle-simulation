@@ -19,11 +19,6 @@ def magnetic_moment(velocity, b_field, x, y, z):
 
 
 def classify_orbit(trajectory, b_field):
-    bz_or_bphi = []
-    for pos in trajectory:
-        B = np.asarray(b_field(*pos))
-        bz_or_bphi.append(B[2] if abs(B[2]) > abs(B[0]) else np.linalg.norm(B[:2]))
-
     v_parallel_sign_changes = 0
     for i in range(1, len(trajectory)):
         v = trajectory[i] - trajectory[i - 1]

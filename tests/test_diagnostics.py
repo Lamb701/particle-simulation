@@ -16,7 +16,7 @@ PROTON_CHARGE = 1.6021766e-19
 
 def test_kinetic_energy():
     v = np.array([3.0, 4.0, 0.0])
-    assert kinetic_energy(v, 2.0) == 25.0
+    np.testing.assert_allclose(kinetic_energy(v, 2.0), 25.0)
 
 
 def test_magnetic_moment_uniform_b():
@@ -24,7 +24,7 @@ def test_magnetic_moment_uniform_b():
     v = np.array([1e5, 0.0, 0.0])
     mu = magnetic_moment(v, b, 0.0, 0.0, 0.0)
     expected = 0.5 * (1e5) ** 2 / 1.0
-    assert abs((mu - expected) / expected) < 1e-12
+    np.testing.assert_allclose(mu, expected, rtol=1e-12)
 
 
 def test_classify_trapped_in_mirror():
