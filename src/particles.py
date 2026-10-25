@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import numpy as np
-from typing import Self
 
 
 @dataclass
@@ -18,8 +17,8 @@ class Particle:
         if self.velocity.shape != (3,):
             raise ValueError("velocity must have shape (3,)")
 
-    def copy(self) -> Self:
-        return Particle(
+    def copy(self) -> "Particle":
+        return self.__class__(
             charge=self.charge,
             mass=self.mass,
             position=self.position.copy(),
