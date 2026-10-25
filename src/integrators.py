@@ -27,7 +27,7 @@ def boris_step(field_b, field_e, particle, dt):
     v_plus = v_minus + np.cross(v_prime, s)
 
     v_new = v_plus + half_dt_q_over_m * E
-    x_new = x + dt * v_new
+    x_new = x + dt * 0.5 * (v + v_new)
 
     return Particle(charge=q, mass=m, position=x_new, velocity=v_new)
 
