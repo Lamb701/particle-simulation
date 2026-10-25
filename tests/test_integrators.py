@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from src.particles import Particle
 from src.fields import TokamakField, MirrorField, ZeroElectricField
-from src.integrators import boris_step, boris_integrate
+from src.integrators import boris_step, boris_integrate, guiding_center_integrate
 
 PROTON_MASS = 1.6726219e-27
 PROTON_CHARGE = 1.6021766e-19
@@ -42,3 +42,18 @@ def test_boris_energy_conservation_mirror():
     energies = 0.5 * PROTON_MASS * np.sum(result["velocity"] ** 2, axis=1)
     rel_err = np.max(np.abs((energies - energies[0]) / energies[0]))
     assert rel_err < 1e-8
+
+def test_guiding_center_mirror_bounces():
+    field = MirrorField(B0=1.0, bm=4.0, L=1.0)
+    # Use a trapped pitch angle (v_perp > v_parallel) so the guiding center bounces.
+    v = np.array([8e4, 0.0, 1e4])
+    p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([0.01, 0.0, 0.0]), v)
+    B = field(*p.position)
+    B_mag = np.linalg.norm(B)
+    v_parallel = np.dot(v, B) / B_mag
+    v_perp_sq = float(v @ v) - v_parallel ** 2
+    mu = 0.5 * v_perp_sq / B_mag
+    result = guiding_center_integrate(field, p, dt=2e-8, n_steps=1500, mu=mu)
+    z = result["trajectory"][:, 2]
+    assert np.max(z) > 0.05
+    assert np.min(z) < -0.05
