@@ -1,52 +1,118 @@
-# Tokamak Particle Orbit Explorer
+# 托卡马克粒子轨道探索器
 
-Interactive Python demonstration of charged-particle orbits in tokamak and magnetic-mirror magnetic fields, using the Boris pusher and a guiding-center comparison.
+这是一个用于模拟带电粒子在托卡马克和磁镜磁场中运动的 Python 项目，采用 Boris 推进算法，并支持与导心近似结果的对比。
 
-## Features
+## 项目背景
 
-- Boris particle pusher for arbitrary electromagnetic fields.
-- Tokamak (large-aspect-ratio, circular) and magnetic-mirror field models.
-- Guiding-center drift approximation for comparison.
-- Numerical verification: energy conservation, magnetic-moment conservation, second-order convergence.
-- Interactive matplotlib GUI.
-- One-click validation figure suite.
-- Jupyter notebook report.
+托卡马克是一种利用磁场约束高温等离子体的环形装置，是实现受控核聚变的重要方案之一。研究带电粒子在托卡马克磁场中的运动轨道，有助于理解粒子的输运、约束和损失机制。本项目从基础出发，实现了粒子推进、磁场建模、数值验证和交互可视化等功能。
 
-## Install
+## 主要功能
+
+- **Boris 粒子推进器**：适用于任意电磁场，长期能量守恒性能好。
+- **磁场模型**：包含圆截面大环径比托卡马克磁场和轴对称磁镜磁场。
+- **导心近似**：实现导心漂移，可与全粒子轨道进行对比。
+- **数值验证**：验证能量守恒、磁矩守恒和算法二阶收敛性。
+- **交互式 GUI**：通过滑块实时调节参数，观察轨道变化。
+- **一键验证脚本**：批量生成展示用的结果图。
+- **Jupyter 报告**：包含公式、代码和结果，便于汇报展示。
+
+## 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Run
+## 使用方法
 
-Interactive GUI:
+**运行交互式 GUI：**
+
 ```bash
 python -m src.gui
 ```
 
-Generate validation figures:
+**生成验证图：**
+
 ```bash
 python scripts/validation.py
 ```
 
-Run tests:
+生成的图片保存在 `figures/` 目录下。
+
+**运行测试：**
+
 ```bash
 pytest
 ```
 
-Open the report:
+**打开汇报笔记本：**
+
 ```bash
 jupyter notebook notebooks/demo.ipynb
 ```
 
-## Project structure
+## 项目结构
 
-- `src/fields.py` — magnetic and electric field definitions.
-- `src/particles.py` — particle state.
-- `src/integrators.py` — Boris and guiding-center steppers.
-- `src/diagnostics.py` — energy, magnetic moment, classification, convergence.
-- `src/gui.py` — interactive orbit explorer.
-- `scripts/validation.py` — batch validation figure generator.
-- `notebooks/demo.ipynb` — presentation report.
-- `tests/` — unit tests.
+```
+plasma-simulation/
+├── src/
+│   ├── particles.py      # 粒子状态类
+│   ├── fields.py         # 磁场和电场定义
+│   ├── integrators.py    # Boris 推进器与导心推进器
+│   ├── diagnostics.py    # 能量、磁矩、分类和收敛诊断
+│   └── gui.py            # 交互式可视化界面
+├── scripts/
+│   └── validation.py     # 批量生成验证图
+├── notebooks/
+│   └── demo.ipynb        # 带公式和图的汇报文档
+├── tests/                # 单元测试
+├── figures/              # 生成的结果图（由验证脚本产生）
+├── README.md
+└── requirements.txt
+```
+
+## 核心物理内容
+
+### 1. Boris 推进算法
+
+Boris 算法是等离子体粒子模拟中广泛使用的推进方法。其主要优势在于能够在较长时间内保持粒子能量守恒，避免普通显式积分方法中常见的能量漂移问题。
+
+算法基本步骤：
+1. 半步电场加速；
+2. 磁场旋转；
+3. 再半步电场加速；
+4. 更新位置。
+
+### 2. 磁场位形
+
+**托卡马克磁场**
+
+采用圆截面、大环径比近似：
+- 环向场：$B_\phi = B_0 \frac{R_0}{R}$
+- 极向场由安全因子 $q(r)$ 给出：$B_\theta = \frac{r}{R q(r)} B_\phi$
+
+**磁镜磁场**
+
+轴对称直磁镜：
+- $B_z(z) = B_0 \left(1 + b_m \left(\frac{z}{L}\right)^2\right)$
+- 径向分量由磁场无散条件 $\nabla \cdot \mathbf{B} = 0$ 导出
+
+### 3. 导心近似
+
+在强磁场、小拉莫尔半径条件下，可以忽略粒子的快速回旋，只研究其导心的运动。导心受到平行磁场梯度力和垂直漂移（$\nabla B$ 漂移、曲率漂移）的影响。将导心轨道与全粒子 Boris 轨道对比，可以直观理解香蕉轨道的形成以及导心近似的适用范围。
+
+### 4. 数值验证
+
+- **能量守恒**：托卡马克中长时间运行后，相对能量误差保持在机器精度量级。
+- **磁矩守恒**：磁镜中验证磁矩作为绝热不变量的行为。
+- **收敛阶数**：通过改变时间步长，验证 Boris 算法的二阶收敛性。
+
+## 后续扩展方向
+
+- 读取真实 EFIT 平衡数据，模拟实际托卡马克位形中的粒子轨道。
+- 加入径向电场和 $E \times B$ 漂移。
+- 引入碰撞效应，向输运和动理学模拟扩展。
+- 发展为粒子云网格（PIC）模拟框架。
+
+## 作者
+
+Leo

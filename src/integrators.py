@@ -62,7 +62,7 @@ def guiding_center_step(field_b, particle, dt, mu):
 
     v_parallel = np.dot(v, b_hat)
 
-    # Magnetic gradient and curvature
+    # 用有限差分计算磁场梯度与曲率
     dx = 1e-6
     gradB = np.zeros(3)
     for i, axis in enumerate([(dx, 0, 0), (0, dx, 0), (0, 0, dx)]):
@@ -70,7 +70,7 @@ def guiding_center_step(field_b, particle, dt, mu):
         Bm = np.asarray(field_b(x[0] - axis[0], x[1] - axis[1], x[2] - axis[2]))
         gradB[i] = (np.linalg.norm(Bp) - np.linalg.norm(Bm)) / (2 * dx)
 
-    # Curvature vector (b . grad)b
+    # 曲率向量 (b · ∇)b
     db = np.zeros((3, 3))
     for i, axis in enumerate([(dx, 0, 0), (0, dx, 0), (0, 0, dx)]):
         Bp = np.asarray(field_b(x[0] + axis[0], x[1] + axis[1], x[2] + axis[2]))
@@ -78,12 +78,11 @@ def guiding_center_step(field_b, particle, dt, mu):
         db[:, i] = (Bp / np.linalg.norm(Bp) - Bm / np.linalg.norm(Bm)) / (2 * dx)
     curvature = db @ b_hat
 
-    # mu is the mass-normalized magnetic moment, v_perp^2 / (2 B).
-    # The corresponding physical magnetic moment is m * mu.
+    # mu 这里取质量归一化磁矩，即 v_perp^2 / (2B)；物理磁矩为 m * mu。
     a_parallel = -mu * gradB @ b_hat
     v_parallel_new = v_parallel + a_parallel * dt
 
-    # Drifts using the physical magnetic moment m * mu.
+    # 漂移项使用物理磁矩 m * mu
     v_grad_curv = (m * mu / q) * np.cross(B, gradB) / (B_mag ** 2) \
                   + (m * v_parallel ** 2 / q) * np.cross(b_hat, curvature) / B_mag
 

@@ -5,14 +5,14 @@ from abc import ABC, abstractmethod
 class MagneticField(ABC):
     @abstractmethod
     def __call__(self, x, y, z):
-        """Return B = (Bx, By, Bz) in Tesla."""
+        """返回磁场 B = (Bx, By, Bz)，单位特斯拉。"""
         ...
 
 
 class ElectricField(ABC):
     @abstractmethod
     def __call__(self, x, y, z):
-        """Return E = (Ex, Ey, Ez) in V/m."""
+        """返回电场 E = (Ex, Ey, Ez)，单位伏特每米。"""
         ...
 
 

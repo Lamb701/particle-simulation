@@ -8,6 +8,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np
 import matplotlib.pyplot as plt
 
+# 设置中文字体，按常见系统字体依次尝试
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "WenQuanYi Micro Hei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
+
 from src.particles import Particle
 from src.fields import TokamakField, MirrorField
 from src.integrators import boris_integrate, guiding_center_integrate
@@ -35,7 +39,7 @@ def plot_energy_conservation_tokamak():
     ax.plot(times, (energies - energies[0]) / energies[0])
     ax.set_xlabel("t [s]")
     ax.set_ylabel(r"$\Delta E / E_0$")
-    ax.set_title("Energy conservation in tokamak")
+    ax.set_title("托卡马克中的能量守恒")
     fig.savefig("figures/energy_tokamak.png", dpi=150)
     plt.close(fig)
 
@@ -55,7 +59,7 @@ def plot_mu_conservation_mirror():
     ax.plot(times, (mus - mus[0]) / mus[0])
     ax.set_xlabel("t [s]")
     ax.set_ylabel(r"$\Delta \mu / \mu_0$")
-    ax.set_title("Magnetic moment conservation in mirror")
+    ax.set_title("磁镜中的磁矩守恒")
     fig.savefig("figures/mu_mirror.png", dpi=150)
     plt.close(fig)
 
@@ -71,10 +75,10 @@ def plot_convergence():
     fig, ax = plt.subplots()
     ax.loglog(result["dt_list"], result["errors"], "o-")
     ax.set_xlabel(r"$\Delta t$")
-    ax.set_ylabel("Position error")
-    ax.set_title("Boris convergence")
+    ax.set_ylabel("位置误差")
+    ax.set_title("Boris 算法收敛性")
     slope = np.polyfit(np.log(result["dt_list"]), np.log(result["errors"]), 1)[0]
-    ax.text(0.1, 0.9, f"slope = {slope:.2f}", transform=ax.transAxes)
+    ax.text(0.1, 0.9, f"斜率 = {slope:.2f}", transform=ax.transAxes)
     fig.savefig("figures/convergence.png", dpi=150)
     plt.close(fig)
 
@@ -96,11 +100,11 @@ def plot_banana_vs_gc():
     fig, ax = plt.subplots()
     R_b = np.sqrt(result_boris["trajectory"][:, 0] ** 2 + result_boris["trajectory"][:, 1] ** 2)
     R_g = np.sqrt(result_gc["trajectory"][:, 0] ** 2 + result_gc["trajectory"][:, 1] ** 2)
-    ax.plot(R_b, result_boris["trajectory"][:, 2], label="Boris full orbit", lw=0.8)
-    ax.plot(R_g, result_gc["trajectory"][:, 2], label="Guiding center", lw=0.8)
+    ax.plot(R_b, result_boris["trajectory"][:, 2], label="Boris 全轨道", lw=0.8)
+    ax.plot(R_g, result_gc["trajectory"][:, 2], label="导心近似", lw=0.8)
     ax.set_xlabel("R")
     ax.set_ylabel("Z")
-    ax.set_title("Banana orbit: Boris vs guiding-center")
+    ax.set_title("香蕉轨道：Boris 全轨道与导心近似")
     ax.legend()
     fig.savefig("figures/banana_vs_gc.png", dpi=150)
     plt.close(fig)
@@ -112,4 +116,4 @@ if __name__ == "__main__":
     plot_mu_conservation_mirror()
     plot_convergence()
     plot_banana_vs_gc()
-    print("Validation figures saved to figures/")
+    print("验证图已保存到 figures/ 目录")
