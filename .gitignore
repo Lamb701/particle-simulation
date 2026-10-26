@@ -1,0 +1,8 @@
+.worktrees/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+figures/
+*.egg-info/
+.pytest_cache/
