@@ -2,9 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
+# 设置中文字体，按常见系统字体依次尝试
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "WenQuanYi Micro Hei", "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
+
 from src.particles import Particle
-from src.fields import TokamakField, MirrorField
-from src.integrators import boris_integrate, guiding_center_integrate
+from src.fields import TokamakField
+from src.integrators import boris_integrate
 from src.diagnostics import kinetic_energy, magnetic_moment
 
 PROTON_MASS = 1.6726219e-27
@@ -20,7 +24,7 @@ def run_gui():
     ax_energy = fig.add_subplot(2, 2, 3)
     ax_mu = fig.add_subplot(2, 2, 4)
 
-    # Default tokamak parameters
+    # 默认托卡马克参数
     B0, R0, a, q0, q1 = 5.0, 10.0, 1.0, 1.0, 2.0
     field = TokamakField(B0, R0, a, q0, q1)
 
@@ -61,11 +65,12 @@ def run_gui():
     ax_Z = plt.axes([0.03, 0.60, 0.18, 0.03], facecolor=axcolor)
     ax_steps = plt.axes([0.03, 0.55, 0.18, 0.03], facecolor=axcolor)
 
-    s_vpara = Slider(ax_vpara, "v_parallel", 1e4, 1e6, valinit=5e4)
-    s_vperp = Slider(ax_vperp, "v_perp", 1e4, 1e6, valinit=1e5)
-    s_R = Slider(ax_R, "R", 9.5, 11.0, valinit=10.2)
-    s_Z = Slider(ax_Z, "Z", -0.5, 0.5, valinit=0.0)
-    s_steps = Slider(ax_steps, "steps", 500, 10000, valinit=2000, valstep=100)
+    s_vpara = Slider(ax_vpara, "平行速度", 1e4, 1e6, valinit=5e4)
+    s_vperp = Slider(ax_vperp, "垂直速度", 1e4, 1e6, valinit=1e5)
+    # 限制滑块范围，保证 r = sqrt((R-R0)^2 + Z^2) <= a
+    s_R = Slider(ax_R, "大半径 R", 9.2, 10.8, valinit=10.2)
+    s_Z = Slider(ax_Z, "高度 Z", -0.5, 0.5, valinit=0.0)
+    s_steps = Slider(ax_steps, "步数", 500, 10000, valinit=2000, valstep=100)
 
     def update(val):
         v_para = s_vpara.val
@@ -110,7 +115,7 @@ def run_gui():
     s_steps.on_changed(update)
 
     reset_ax = plt.axes([0.08, 0.45, 0.08, 0.04])
-    reset_btn = Button(reset_ax, "Reset", color=axcolor, hovercolor="0.975")
+    reset_btn = Button(reset_ax, "重置", color=axcolor, hovercolor="0.975")
 
     def reset(event):
         s_vpara.reset()
