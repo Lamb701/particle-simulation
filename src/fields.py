@@ -22,6 +22,14 @@ class ZeroElectricField(ElectricField):
 
 
 class TokamakField(MagneticField):
+    """圆截面、大环径比托卡马克的解析磁场模型。
+
+    环向场：B_phi = B0 * R0 / R
+    极向场：B_theta = r * B0 / (R * q(r))，由安全因子剖面 q(r) 给出。
+    该场在几何上类似托卡马克，但不满足 Grad-Shafranov 平衡，
+    仅用于单粒子轨道教学演示。
+    """
+
     def __init__(self, B0, R0, a, q0, q1=0.0):
         self.B0 = float(B0)
         self.R0 = float(R0)
@@ -32,25 +40,30 @@ class TokamakField(MagneticField):
     def __call__(self, x, y, z):
         x, y, z = float(x), float(y), float(z)
         R = np.sqrt(x * x + y * y)
-        if R == 0:
-            R = 1e-12
+        if R < 1e-12:
+            raise ValueError("TokamakField is undefined on the symmetry axis R=0")
         phi = np.arctan2(y, x)
 
         r = np.sqrt((R - self.R0) ** 2 + z * z)
         if r > self.a:
-            r = self.a  # clamp to last-closed surface for simplicity
+            raise ValueError(
+                f"Point is outside the last closed flux surface: r={r:.4f} > a={self.a}"
+            )
 
         q = self.q0 + self.q1 * (r / self.a) ** 2
 
         B_phi = self.B0 * self.R0 / R
-        B_theta = (r / (R * q)) * B_phi
+        B_theta = (r / (R * q)) * self.B0
 
         e_phi = np.array([-np.sin(phi), np.cos(phi), 0.0])
-        e_theta = np.array([
-            -(z / r) * np.cos(phi),
-            -(z / r) * np.sin(phi),
-            (R - self.R0) / r,
-        ]) if r > 1e-12 else np.array([0.0, 0.0, 1.0])
+        if r > 1e-12:
+            e_theta = np.array([
+                -(z / r) * np.cos(phi),
+                -(z / r) * np.sin(phi),
+                (R - self.R0) / r,
+            ])
+        else:
+            e_theta = np.array([0.0, 0.0, 1.0])
 
         return B_phi * e_phi + B_theta * e_theta
 

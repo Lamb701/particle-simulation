@@ -67,7 +67,8 @@ def run_gui():
 
     s_vpara = Slider(ax_vpara, "平行速度", 1e4, 1e6, valinit=5e4)
     s_vperp = Slider(ax_vperp, "垂直速度", 1e4, 1e6, valinit=1e5)
-    s_R = Slider(ax_R, "大半径 R", 9.5, 11.0, valinit=10.2)
+    # 限制滑块范围，保证 r = sqrt((R-R0)^2 + Z^2) <= a
+    s_R = Slider(ax_R, "大半径 R", 9.2, 10.8, valinit=10.2)
     s_Z = Slider(ax_Z, "高度 Z", -0.5, 0.5, valinit=0.0)
     s_steps = Slider(ax_steps, "步数", 500, 10000, valinit=2000, valstep=100)
 
