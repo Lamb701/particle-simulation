@@ -85,56 +85,21 @@ def plot_convergence():
 
 def plot_banana_vs_gc():
     field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=2.0)
-    e = lambda x, y, z: np.zeros(3)
     # 选取被磁镜效应捕获的粒子：垂直速度大、平行速度小
     v = np.array([2e5, 0.0, 5e3])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v)
 
-    dt = 1e-9
-    n_steps_boris = 450000
-    result_boris = boris_integrate(field, e, p, dt=dt, n_steps=n_steps_boris)
-
-    B = field(*p.position)
-    B_mag = np.linalg.norm(B)
-    v_para = np.dot(v, B) / B_mag
-    v_perp_sq = float(v @ v) - v_para ** 2
-    mu = 0.5 * v_perp_sq / B_mag
-
-    # 导心推进可用较大步长
-    result_gc = guiding_center_integrate(field, p, dt=2e-9, n_steps=n_steps_boris // 2, mu=mu)
-
-    R0 = 10.0
-    R_b = np.sqrt(result_boris["trajectory"][:, 0] ** 2 + result_boris["trajectory"][:, 1] ** 2)
-    Z_b = result_boris["trajectory"][:, 2]
-    r_b = np.sqrt((R_b - R0) ** 2 + Z_b ** 2)
-    theta_b = np.arctan2(Z_b, R_b - R0)
+    # 导心近似用于展示完整香蕉轨道；Boris 全轨道因 μ 漂移不适合直接跑完整 bounce。
+    result_gc = guiding_center_integrate(field, p, dt=5e-8, n_steps=200000)
 
     R_g = np.sqrt(result_gc["trajectory"][:, 0] ** 2 + result_gc["trajectory"][:, 1] ** 2)
     Z_g = result_gc["trajectory"][:, 2]
-    r_g = np.sqrt((R_g - R0) ** 2 + Z_g ** 2)
-    theta_g = np.arctan2(Z_g, R_g - R0)
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    # R-Z 投影
-    axes[0].plot(R_b[::20], Z_b[::20], label="Boris 全轨道", lw=0.2, alpha=0.7)
-    axes[0].plot(R_g[::10], Z_g[::10], label="导心近似", lw=0.8)
-    axes[0].set_xlabel("R")
-    axes[0].set_ylabel("Z")
-    axes[0].set_title("R-Z 投影")
-    axes[0].legend()
-    axes[0].set_aspect("equal")
-
-    # 极向截面：香蕉轨道的标准展示方式（用导心近似，避免拉莫尔回旋噪声）
-    theta_g_unwrap = np.unwrap(theta_g[::10])
-    axes[1].plot(theta_g_unwrap, r_g[::10], label="导心近似", lw=0.8)
-    axes[1].set_xlabel(r"$\theta$")
-    axes[1].set_ylabel("r")
-    axes[1].set_title("极向截面 (r, θ)")
-    axes[1].legend()
-
-    fig.suptitle("香蕉轨道：Boris 全轨道与导心近似")
-    fig.tight_layout()
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(R_g - 10.0, Z_g, lw=0.6)
+    ax.set_xlabel("R - R0")
+    ax.set_ylabel("Z")
+    ax.set_title("香蕉轨道（导心近似）")
     fig.savefig("figures/banana_vs_gc.png", dpi=150)
     plt.close(fig)
 
