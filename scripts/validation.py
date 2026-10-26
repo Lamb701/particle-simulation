@@ -103,15 +103,38 @@ def plot_banana_vs_gc():
     # 导心推进可用较大步长
     result_gc = guiding_center_integrate(field, p, dt=2e-9, n_steps=n_steps_boris // 2, mu=mu)
 
-    fig, ax = plt.subplots()
+    R0 = 10.0
     R_b = np.sqrt(result_boris["trajectory"][:, 0] ** 2 + result_boris["trajectory"][:, 1] ** 2)
+    Z_b = result_boris["trajectory"][:, 2]
+    r_b = np.sqrt((R_b - R0) ** 2 + Z_b ** 2)
+    theta_b = np.arctan2(Z_b, R_b - R0)
+
     R_g = np.sqrt(result_gc["trajectory"][:, 0] ** 2 + result_gc["trajectory"][:, 1] ** 2)
-    ax.plot(R_b[::20], result_boris["trajectory"][::20, 2], label="Boris 全轨道", lw=0.2, alpha=0.7)
-    ax.plot(R_g[::10], result_gc["trajectory"][::10, 2], label="导心近似", lw=0.8)
-    ax.set_xlabel("R")
-    ax.set_ylabel("Z")
-    ax.set_title("香蕉轨道：Boris 全轨道与导心近似")
-    ax.legend()
+    Z_g = result_gc["trajectory"][:, 2]
+    r_g = np.sqrt((R_g - R0) ** 2 + Z_g ** 2)
+    theta_g = np.arctan2(Z_g, R_g - R0)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # R-Z 投影
+    axes[0].plot(R_b[::20], Z_b[::20], label="Boris 全轨道", lw=0.2, alpha=0.7)
+    axes[0].plot(R_g[::10], Z_g[::10], label="导心近似", lw=0.8)
+    axes[0].set_xlabel("R")
+    axes[0].set_ylabel("Z")
+    axes[0].set_title("R-Z 投影")
+    axes[0].legend()
+    axes[0].set_aspect("equal")
+
+    # 极向截面：香蕉轨道的标准展示方式（用导心近似，避免拉莫尔回旋噪声）
+    theta_g_unwrap = np.unwrap(theta_g[::10])
+    axes[1].plot(theta_g_unwrap, r_g[::10], label="导心近似", lw=0.8)
+    axes[1].set_xlabel(r"$\theta$")
+    axes[1].set_ylabel("r")
+    axes[1].set_title("极向截面 (r, θ)")
+    axes[1].legend()
+
+    fig.suptitle("香蕉轨道：Boris 全轨道与导心近似")
+    fig.tight_layout()
     fig.savefig("figures/banana_vs_gc.png", dpi=150)
     plt.close(fig)
 
