@@ -86,22 +86,28 @@ def plot_convergence():
 def plot_banana_vs_gc():
     field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=2.0)
     e = lambda x, y, z: np.zeros(3)
-    v = np.array([5e4, 0.0, 8e4])
+    # 选取被磁镜效应捕获的粒子：垂直速度大、平行速度小
+    v = np.array([2e5, 0.0, 5e3])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v)
 
-    result_boris = boris_integrate(field, e, p, dt=1e-10, n_steps=8000)
+    dt = 1e-9
+    n_steps_boris = 450000
+    result_boris = boris_integrate(field, e, p, dt=dt, n_steps=n_steps_boris)
+
     B = field(*p.position)
     B_mag = np.linalg.norm(B)
     v_para = np.dot(v, B) / B_mag
     v_perp_sq = float(v @ v) - v_para ** 2
     mu = 0.5 * v_perp_sq / B_mag
-    result_gc = guiding_center_integrate(field, p, dt=1e-10, n_steps=8000, mu=mu)
+
+    # 导心推进可用较大步长
+    result_gc = guiding_center_integrate(field, p, dt=2e-9, n_steps=n_steps_boris // 2, mu=mu)
 
     fig, ax = plt.subplots()
     R_b = np.sqrt(result_boris["trajectory"][:, 0] ** 2 + result_boris["trajectory"][:, 1] ** 2)
     R_g = np.sqrt(result_gc["trajectory"][:, 0] ** 2 + result_gc["trajectory"][:, 1] ** 2)
-    ax.plot(R_b, result_boris["trajectory"][:, 2], label="Boris 全轨道", lw=0.8)
-    ax.plot(R_g, result_gc["trajectory"][:, 2], label="导心近似", lw=0.8)
+    ax.plot(R_b[::20], result_boris["trajectory"][::20, 2], label="Boris 全轨道", lw=0.2, alpha=0.7)
+    ax.plot(R_g[::10], result_gc["trajectory"][::10, 2], label="导心近似", lw=0.8)
     ax.set_xlabel("R")
     ax.set_ylabel("Z")
     ax.set_title("香蕉轨道：Boris 全轨道与导心近似")
