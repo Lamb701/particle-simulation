@@ -27,19 +27,30 @@ def ensure_figures_dir():
 
 def plot_energy_conservation_tokamak():
     field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=2.0)
-    e = lambda x, y, z: np.zeros(3)
     v = np.array([1e5, 0.0, 5e4])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v)
-    result = boris_integrate(field, e, p, dt=1e-10, n_steps=5000)
-    vel = result["velocity"]
-    times = result["times"]
-    energies = np.array([kinetic_energy(vv, PROTON_MASS) for vv in vel])
 
-    fig, ax = plt.subplots()
-    ax.plot(times, (energies - energies[0]) / energies[0])
-    ax.set_xlabel("t [s]")
-    ax.set_ylabel(r"$\Delta E / E_0$")
-    ax.set_title("托卡马克中的能量守恒")
+    # E=0: Boris conserves |v| exactly (up to roundoff), so this is a sanity check.
+    result_zero_e = boris_integrate(field, lambda x, y, z: np.zeros(3), p, dt=1e-10, n_steps=5000)
+    energies_zero = np.array([kinetic_energy(vv, PROTON_MASS) for vv in result_zero_e["velocity"]])
+
+    # Nonzero E: energy should change according to the work done by the field.
+    e_field = lambda x, y, z: np.array([1000.0, 0.0, 0.0])
+    result_e = boris_integrate(field, e_field, p, dt=1e-10, n_steps=5000)
+    energies_e = np.array([kinetic_energy(vv, PROTON_MASS) for vv in result_e["velocity"]])
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    axes[0].plot(result_zero_e["times"], (energies_zero - energies_zero[0]) / energies_zero[0])
+    axes[0].set_xlabel("t [s]")
+    axes[0].set_ylabel(r"$\Delta E / E_0$")
+    axes[0].set_title("E = 0：Boris 能量守恒（机器精度）")
+
+    axes[1].plot(result_e["times"], (energies_e - energies_e[0]) / energies_e[0])
+    axes[1].set_xlabel("t [s]")
+    axes[1].set_ylabel(r"$\Delta E / E_0$")
+    axes[1].set_title("E ≠ 0：电场做功导致能量变化")
+
+    fig.tight_layout()
     fig.savefig("figures/energy_tokamak.png", dpi=150)
     plt.close(fig)
 
@@ -49,17 +60,23 @@ def plot_mu_conservation_mirror():
     e = lambda x, y, z: np.zeros(3)
     v = np.array([1e4, 0.0, 5e4])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([0.01, 0.0, 0.0]), v)
-    result = boris_integrate(field, e, p, dt=1e-9, n_steps=5000)
-    traj = result["trajectory"]
-    vel = result["velocity"]
-    times = result["times"]
-    mus = np.array([magnetic_moment(vv, field, *xx) for vv, xx in zip(vel, traj)])
+
+    # Measure max |Δμ/μ| for several timesteps, so numerical drift can be
+    # distinguished from the physical oscillation level.
+    dt_list = [4e-9, 2e-9, 1e-9, 5e-10, 2.5e-10, 1.25e-10]
+    max_errors = []
+    for dt in dt_list:
+        result = boris_integrate(field, e, p, dt=dt, n_steps=5000)
+        traj = result["trajectory"]
+        vel = result["velocity"]
+        mus = np.array([magnetic_moment(vv, field, *xx) for vv, xx in zip(vel, traj)])
+        max_errors.append(np.max(np.abs((mus - mus[0]) / mus[0])))
 
     fig, ax = plt.subplots()
-    ax.plot(times, (mus - mus[0]) / mus[0])
-    ax.set_xlabel("t [s]")
-    ax.set_ylabel(r"$\Delta \mu / \mu_0$")
-    ax.set_title("磁镜中的磁矩守恒")
+    ax.loglog(dt_list, max_errors, "o-")
+    ax.set_xlabel(r"$\Delta t$ [s]")
+    ax.set_ylabel(r"max $|\Delta \mu / \mu_0|$")
+    ax.set_title("磁镜中磁矩误差随步长的收敛")
     fig.savefig("figures/mu_mirror.png", dpi=150)
     plt.close(fig)
 
@@ -69,12 +86,14 @@ def plot_convergence():
     e = lambda x, y, z: np.zeros(3)
     v = np.array([1e5, 0.0, 5e4])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([0.01, 0.0, 0.0]), v)
-    dt_list = [2e-10, 4e-10, 8e-10]
-    result = convergence_test(field, e, p, dt_ref=1e-10, n_steps_ref=8000, dt_list=dt_list)
+    # Use more timesteps and a finer reference so the slope is not dominated
+    # by reference error or phase error.
+    dt_list = [2e-10, 4e-10, 8e-10, 1.6e-9, 3.2e-9]
+    result = convergence_test(field, e, p, dt_ref=2.5e-11, n_steps_ref=32000, dt_list=dt_list)
 
     fig, ax = plt.subplots()
     ax.loglog(result["dt_list"], result["errors"], "o-")
-    ax.set_xlabel(r"$\Delta t$")
+    ax.set_xlabel(r"$\Delta t$ [s]")
     ax.set_ylabel("位置误差")
     ax.set_title("Boris 算法收敛性")
     slope = np.polyfit(np.log(result["dt_list"]), np.log(result["errors"]), 1)[0]

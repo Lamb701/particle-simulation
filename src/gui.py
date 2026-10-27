@@ -15,6 +15,19 @@ PROTON_MASS = 1.6726219e-27
 PROTON_CHARGE = 1.6021766e-19
 
 
+def initial_velocity_from_pitch(field, position, v_para, v_perp):
+    """Construct velocity from parallel/perpendicular components at a given position."""
+    B_local = field(*position)
+    B_mag = np.linalg.norm(B_local)
+    b = B_local / B_mag
+    perp_dir = np.array([1.0, 0.0, 0.0])
+    if abs(np.dot(perp_dir, b)) > 0.9:
+        perp_dir = np.array([0.0, 1.0, 0.0])
+    perp_dir = perp_dir - np.dot(perp_dir, b) * b
+    perp_dir = perp_dir / np.linalg.norm(perp_dir)
+    return v_para * b + v_perp * perp_dir
+
+
 def run_gui():
     fig = plt.figure(figsize=(14, 8))
     fig.subplots_adjust(left=0.25)
@@ -65,11 +78,11 @@ def run_gui():
     ax_Z = plt.axes([0.03, 0.60, 0.18, 0.03], facecolor=axcolor)
     ax_steps = plt.axes([0.03, 0.55, 0.18, 0.03], facecolor=axcolor)
 
-    s_vpara = Slider(ax_vpara, "平行速度", 1e4, 1e6, valinit=5e4)
-    s_vperp = Slider(ax_vperp, "垂直速度", 1e4, 1e6, valinit=1e5)
+    s_vpara = Slider(ax_vpara, "平行速度 [m/s]", 1e4, 1e6, valinit=5e4)
+    s_vperp = Slider(ax_vperp, "垂直速度 [m/s]", 1e4, 1e6, valinit=1e5)
     # 限制滑块范围，保证 r = sqrt((R-R0)^2 + Z^2) <= a
-    s_R = Slider(ax_R, "大半径 R", 9.2, 10.8, valinit=10.2)
-    s_Z = Slider(ax_Z, "高度 Z", -0.5, 0.5, valinit=0.0)
+    s_R = Slider(ax_R, "大半径 R [m]", 9.2, 10.8, valinit=10.2)
+    s_Z = Slider(ax_Z, "高度 Z [m]", -0.5, 0.5, valinit=0.0)
     s_steps = Slider(ax_steps, "步数", 500, 10000, valinit=2000, valstep=100)
 
     def update(val):
@@ -79,16 +92,8 @@ def run_gui():
         Z_init = s_Z.val
         n = int(s_steps.val)
 
-        B_local = np.array([0.0, 0.0, field(R0_init, 0.0, Z_init)[2]])
-        B_mag = np.linalg.norm(B_local)
-        b = B_local / B_mag
-        perp_dir = np.array([1.0, 0.0, 0.0])
-        if abs(np.dot(perp_dir, b)) > 0.9:
-            perp_dir = np.array([0.0, 1.0, 0.0])
-        perp_dir = perp_dir - np.dot(perp_dir, b) * b
-        perp_dir = perp_dir / np.linalg.norm(perp_dir)
-
-        v_new = v_para * b + v_perp * perp_dir
+        # 用完整磁场向量确定平行/垂直方向
+        v_new = initial_velocity_from_pitch(field, (R0_init, 0.0, Z_init), v_para, v_perp)
         p_new = Particle(PROTON_CHARGE, PROTON_MASS, np.array([R0_init, 0.0, Z_init]), v_new)
         res = boris_integrate(field, lambda x, y, z: np.zeros(3), p_new, dt, n)
         t = res["trajectory"]
