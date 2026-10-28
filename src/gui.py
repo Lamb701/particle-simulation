@@ -48,16 +48,23 @@ def run_gui():
     dt = 1e-7
     n_steps = 100000
 
-    result = guiding_center_integrate(field, p, dt=dt, n_steps=n_steps)
-    traj = result["trajectory"]
-    times = result["times"]
-    vparas = result["v_parallel"]
-    mu = result["mu"]
+    result_gc = guiding_center_integrate(field, p, dt=dt, n_steps=n_steps)
+    traj = result_gc["trajectory"]
+    times = result_gc["times"]
+    vparas = result_gc["v_parallel"]
+    mu = result_gc["mu"]
 
     # GC diagnostics: energy from v_parallel and mu; mu is conserved by construction.
     Bmag = np.array([np.linalg.norm(field(*xx)) for xx in traj])
     energies = 0.5 * PROTON_MASS * (vparas ** 2 + 2 * mu * Bmag)
-    mus = np.full_like(times, mu)
+    mus_gc = np.full_like(times, mu)
+
+    # Also run Boris for comparison: its mu drifts over long times.
+    result_boris = boris_integrate(field, lambda x, y, z: np.zeros(3), p, dt=dt, n_steps=n_steps)
+    mus_boris = np.array([
+        magnetic_moment(vv, field, *xx)
+        for vv, xx in zip(result_boris["velocity"], result_boris["trajectory"])
+    ])
 
     line3d, = ax3d.plot(traj[:, 0], traj[:, 1], traj[:, 2], lw=0.8)
     ax3d.set_xlabel("x")
@@ -72,9 +79,11 @@ def run_gui():
     ax_energy.set_xlabel("t")
     ax_energy.set_ylabel("$\\Delta E / E_0$")
 
-    line_mu, = ax_mu.plot(times, (mus - mus[0]) / mus[0])
+    line_mu_boris, = ax_mu.plot(times, (mus_boris - mus_boris[0]) / mus_boris[0], label="Boris")
+    line_mu_gc, = ax_mu.plot(times, (mus_gc - mus_gc[0]) / mus_gc[0], label="导心近似")
     ax_mu.set_xlabel("t")
     ax_mu.set_ylabel("$\\Delta \\mu / \\mu_0$")
+    ax_mu.legend()
 
     axcolor = "lightgoldenrodyellow"
     ax_vpara = plt.axes([0.03, 0.75, 0.18, 0.03], facecolor=axcolor)
@@ -100,19 +109,28 @@ def run_gui():
         # 用完整磁场向量确定平行/垂直方向，并用 GC 展示香蕉轨道
         v_new = initial_velocity_from_pitch(field, (R0_init, 0.0, Z_init), v_para, v_perp)
         p_new = Particle(PROTON_CHARGE, PROTON_MASS, np.array([R0_init, 0.0, Z_init]), v_new)
-        res = guiding_center_integrate(field, p_new, dt=dt, n_steps=n)
-        t = res["trajectory"]
-        vparas_new = res["v_parallel"]
-        mu_new = res["mu"]
+        res_gc = guiding_center_integrate(field, p_new, dt=dt, n_steps=n)
+        t = res_gc["trajectory"]
+        vparas_new = res_gc["v_parallel"]
+        mu_new = res_gc["mu"]
 
         line3d.set_data_3d(t[:, 0], t[:, 1], t[:, 2])
         line_rz.set_data(np.sqrt(t[:, 0] ** 2 + t[:, 1] ** 2) - R0, t[:, 2])
 
         Bmag_new = np.array([np.linalg.norm(field(*xx)) for xx in t])
         es = 0.5 * PROTON_MASS * (vparas_new ** 2 + 2 * mu_new * Bmag_new)
-        ms = np.full_like(res["times"], mu_new)
-        line_e.set_data(res["times"], (es - es[0]) / es[0])
-        line_mu.set_data(res["times"], (ms - ms[0]) / ms[0])
+        ms_gc = np.full_like(res_gc["times"], mu_new)
+
+        # 同时运行 Boris，展示其 μ 漂移
+        res_boris = boris_integrate(field, lambda x, y, z: np.zeros(3), p_new, dt=dt, n_steps=n)
+        ms_boris = np.array([
+            magnetic_moment(vv, field, *xx)
+            for vv, xx in zip(res_boris["velocity"], res_boris["trajectory"])
+        ])
+
+        line_e.set_data(res_gc["times"], (es - es[0]) / es[0])
+        line_mu_boris.set_data(res_boris["times"], (ms_boris - ms_boris[0]) / ms_boris[0])
+        line_mu_gc.set_data(res_gc["times"], (ms_gc - ms_gc[0]) / ms_gc[0])
 
         ax_energy.relim()
         ax_energy.autoscale_view()
