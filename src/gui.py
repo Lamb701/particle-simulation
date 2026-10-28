@@ -8,11 +8,24 @@ plt.rcParams["axes.unicode_minus"] = False
 
 from src.particles import Particle
 from src.fields import TokamakField
-from src.integrators import boris_integrate
+from src.integrators import boris_integrate, guiding_center_integrate
 from src.diagnostics import kinetic_energy, magnetic_moment
 
 PROTON_MASS = 1.6726219e-27
 PROTON_CHARGE = 1.6021766e-19
+
+
+def initial_velocity_from_pitch(field, position, v_para, v_perp):
+    """Construct velocity from parallel/perpendicular components at a given position."""
+    B_local = field(*position)
+    B_mag = np.linalg.norm(B_local)
+    b = B_local / B_mag
+    perp_dir = np.array([1.0, 0.0, 0.0])
+    if abs(np.dot(perp_dir, b)) > 0.9:
+        perp_dir = np.array([0.0, 1.0, 0.0])
+    perp_dir = perp_dir - np.dot(perp_dir, b) * b
+    perp_dir = perp_dir / np.linalg.norm(perp_dir)
+    return v_para * b + v_perp * perp_dir
 
 
 def run_gui():
@@ -28,26 +41,31 @@ def run_gui():
     B0, R0, a, q0, q1 = 5.0, 10.0, 1.0, 1.0, 2.0
     field = TokamakField(B0, R0, a, q0, q1)
 
-    v = np.array([1e5, 0.0, 5e4])
-    p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v)
-    dt = 1e-10
-    n_steps = 2000
+    # 默认使用导心近似展示完整香蕉轨道；Boris 全轨道长时间会出现 μ 漂移。
+    v_para_init, v_perp_init = 5e3, 2e5
+    v_init = initial_velocity_from_pitch(field, (10.2, 0.0, 0.0), v_para_init, v_perp_init)
+    p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v_init)
+    dt = 1e-7
+    n_steps = 100000
 
-    result = boris_integrate(field, lambda x, y, z: np.zeros(3), p, dt, n_steps)
+    result = guiding_center_integrate(field, p, dt=dt, n_steps=n_steps)
     traj = result["trajectory"]
-    vel = result["velocity"]
     times = result["times"]
+    vparas = result["v_parallel"]
+    mu = result["mu"]
 
-    energies = np.array([kinetic_energy(vv, PROTON_MASS) for vv in vel])
-    mus = np.array([magnetic_moment(vv, field, *xx) for vv, xx in zip(vel, traj)])
+    # GC diagnostics: energy from v_parallel and mu; mu is conserved by construction.
+    Bmag = np.array([np.linalg.norm(field(*xx)) for xx in traj])
+    energies = 0.5 * PROTON_MASS * (vparas ** 2 + 2 * mu * Bmag)
+    mus = np.full_like(times, mu)
 
     line3d, = ax3d.plot(traj[:, 0], traj[:, 1], traj[:, 2], lw=0.8)
     ax3d.set_xlabel("x")
     ax3d.set_ylabel("y")
     ax3d.set_zlabel("z")
 
-    line_rz, = ax_rz.plot(np.sqrt(traj[:, 0] ** 2 + traj[:, 1] ** 2), traj[:, 2], lw=0.8)
-    ax_rz.set_xlabel("R")
+    line_rz, = ax_rz.plot(np.sqrt(traj[:, 0] ** 2 + traj[:, 1] ** 2) - R0, traj[:, 2], lw=0.8)
+    ax_rz.set_xlabel("R - R0")
     ax_rz.set_ylabel("Z")
 
     line_e, = ax_energy.plot(times, (energies - energies[0]) / energies[0])
@@ -65,12 +83,12 @@ def run_gui():
     ax_Z = plt.axes([0.03, 0.60, 0.18, 0.03], facecolor=axcolor)
     ax_steps = plt.axes([0.03, 0.55, 0.18, 0.03], facecolor=axcolor)
 
-    s_vpara = Slider(ax_vpara, "平行速度", 1e4, 1e6, valinit=5e4)
-    s_vperp = Slider(ax_vperp, "垂直速度", 1e4, 1e6, valinit=1e5)
+    s_vpara = Slider(ax_vpara, "v_par [m/s]", 1e3, 1e6, valinit=5e3)
+    s_vperp = Slider(ax_vperp, "v_perp [m/s]", 1e4, 1e6, valinit=2e5)
     # 限制滑块范围，保证 r = sqrt((R-R0)^2 + Z^2) <= a
-    s_R = Slider(ax_R, "大半径 R", 9.2, 10.8, valinit=10.2)
-    s_Z = Slider(ax_Z, "高度 Z", -0.5, 0.5, valinit=0.0)
-    s_steps = Slider(ax_steps, "步数", 500, 10000, valinit=2000, valstep=100)
+    s_R = Slider(ax_R, "R [m]", 9.2, 10.8, valinit=10.2)
+    s_Z = Slider(ax_Z, "Z [m]", -0.5, 0.5, valinit=0.0)
+    s_steps = Slider(ax_steps, "步数", 10000, 200000, valinit=100000, valstep=10000)
 
     def update(val):
         v_para = s_vpara.val
@@ -79,26 +97,20 @@ def run_gui():
         Z_init = s_Z.val
         n = int(s_steps.val)
 
-        B_local = np.array([0.0, 0.0, field(R0_init, 0.0, Z_init)[2]])
-        B_mag = np.linalg.norm(B_local)
-        b = B_local / B_mag
-        perp_dir = np.array([1.0, 0.0, 0.0])
-        if abs(np.dot(perp_dir, b)) > 0.9:
-            perp_dir = np.array([0.0, 1.0, 0.0])
-        perp_dir = perp_dir - np.dot(perp_dir, b) * b
-        perp_dir = perp_dir / np.linalg.norm(perp_dir)
-
-        v_new = v_para * b + v_perp * perp_dir
+        # 用完整磁场向量确定平行/垂直方向，并用 GC 展示香蕉轨道
+        v_new = initial_velocity_from_pitch(field, (R0_init, 0.0, Z_init), v_para, v_perp)
         p_new = Particle(PROTON_CHARGE, PROTON_MASS, np.array([R0_init, 0.0, Z_init]), v_new)
-        res = boris_integrate(field, lambda x, y, z: np.zeros(3), p_new, dt, n)
+        res = guiding_center_integrate(field, p_new, dt=dt, n_steps=n)
         t = res["trajectory"]
-        vels = res["velocity"]
+        vparas_new = res["v_parallel"]
+        mu_new = res["mu"]
 
         line3d.set_data_3d(t[:, 0], t[:, 1], t[:, 2])
-        line_rz.set_data(np.sqrt(t[:, 0] ** 2 + t[:, 1] ** 2), t[:, 2])
+        line_rz.set_data(np.sqrt(t[:, 0] ** 2 + t[:, 1] ** 2) - R0, t[:, 2])
 
-        es = np.array([kinetic_energy(vv, PROTON_MASS) for vv in vels])
-        ms = np.array([magnetic_moment(vv, field, *xx) for vv, xx in zip(vels, t)])
+        Bmag_new = np.array([np.linalg.norm(field(*xx)) for xx in t])
+        es = 0.5 * PROTON_MASS * (vparas_new ** 2 + 2 * mu_new * Bmag_new)
+        ms = np.full_like(res["times"], mu_new)
         line_e.set_data(res["times"], (es - es[0]) / es[0])
         line_mu.set_data(res["times"], (ms - ms[0]) / ms[0])
 

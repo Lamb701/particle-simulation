@@ -18,28 +18,61 @@ def magnetic_moment(velocity, b_field, x, y, z):
     return 0.5 * v_perp_sq / B_mag
 
 
-def classify_orbit(trajectory, b_field):
-    v_parallel_sign_changes = 0
-    for i in range(1, len(trajectory)):
-        v = trajectory[i] - trajectory[i - 1]
-        B = np.asarray(b_field(*trajectory[i]))
+def classify_orbit(trajectory, velocity, b_field):
+    """Classify an orbit by counting sign changes of v_parallel along the trajectory.
+
+    Uses the actual velocity array rather than finite-differencing positions.
+    A trapped particle shows at least two sign changes (one full bounce).
+    """
+    vparas = []
+    for pos, vel in zip(trajectory, velocity):
+        B = np.asarray(b_field(*pos))
         B_mag = np.linalg.norm(B)
         if B_mag == 0:
-            continue
-        v_parallel = np.dot(v, B) / B_mag
-        if i > 1:
-            prev_v = trajectory[i - 1] - trajectory[i - 2]
-            prev_B = np.asarray(b_field(*trajectory[i - 1]))
-            prev_v_parallel = np.dot(prev_v, prev_B) / np.linalg.norm(prev_B)
-            if v_parallel * prev_v_parallel < 0:
-                v_parallel_sign_changes += 1
+            vparas.append(0.0)
+        else:
+            vparas.append(np.dot(vel, B) / B_mag)
 
-    if v_parallel_sign_changes >= 2:
+    vparas = np.asarray(vparas)
+    if len(vparas) == 0:
+        return "passing"
+
+    # Suppress small-amplitude oscillations around zero to avoid spurious counts.
+    threshold = 0.01 * np.max(np.abs(vparas))
+    states = np.zeros(len(vparas), dtype=int)
+    states[vparas > threshold] = 1
+    states[vparas < -threshold] = -1
+
+    sign_changes = 0
+    last_nonzero = 0
+    for i in range(1, len(states)):
+        if states[i] != 0 and last_nonzero != 0 and states[i] != last_nonzero:
+            sign_changes += 1
+        if states[i] != 0:
+            last_nonzero = states[i]
+
+    if sign_changes >= 2:
         return "trapped"
-    elif v_parallel_sign_changes == 1:
+    elif sign_changes == 1:
         return "barely_trapped"
     else:
         return "passing"
+
+
+def trapped_pitch_condition(particle, b_field, b_max):
+    """Check whether a particle is trapped by the pitch-angle/loss-cone criterion.
+
+    A particle is trapped if v_parallel^2 / v^2 < B_local / B_max,
+    where B_max is the maximum field strength along its orbit.
+    """
+    B = np.asarray(b_field(*particle.position))
+    B_mag = np.linalg.norm(B)
+    v = particle.velocity
+    v_total = np.linalg.norm(v)
+    if v_total == 0 or B_mag == 0:
+        return False
+    v_parallel = np.dot(v, B) / B_mag
+    return (v_parallel / v_total) ** 2 < B_mag / b_max
 
 
 def convergence_test(field_b, field_e, particle, dt_ref, n_steps_ref, dt_list):

@@ -7,6 +7,7 @@ from src.diagnostics import (
     magnetic_moment,
     classify_orbit,
     convergence_test,
+    trapped_pitch_condition,
 )
 from src.fields import ZeroElectricField
 
@@ -33,18 +34,35 @@ def test_classify_trapped_in_mirror():
     v = np.array([5e4, 0.0, 1e4])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([0.01, 0.0, 0.0]), v)
     result = boris_integrate(field, e, p, dt=1e-9, n_steps=50000)
-    label = classify_orbit(result["trajectory"], field)
+    label = classify_orbit(result["trajectory"], result["velocity"], field)
     assert label == "trapped"
 
 
 def test_classify_passing_in_tokamak():
     field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=0.0)
     e = ZeroElectricField()
-    v = np.array([0.0, 0.0, 5e5])
+    # Velocity mostly along the toroidal field, so the particle is passing.
+    v = np.array([0.0, 5e5, 0.0])
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v)
     result = boris_integrate(field, e, p, dt=1e-10, n_steps=3000)
-    label = classify_orbit(result["trajectory"], field)
+    label = classify_orbit(result["trajectory"], result["velocity"], field)
     assert label == "passing"
+
+
+def test_trapped_pitch_condition():
+    field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=0.0)
+    # Estimate B_max on the inner side of the same flux surface.
+    B_max = np.linalg.norm(field(9.8, 0.0, 0.0))
+
+    # Small v_parallel: trapped.
+    v_trapped = np.array([1e5, 0.0, 1e3])
+    p_trapped = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v_trapped)
+    assert trapped_pitch_condition(p_trapped, field, B_max)
+
+    # Large v_parallel: passing.
+    v_passing = np.array([0.0, 5e5, 0.0])
+    p_passing = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v_passing)
+    assert not trapped_pitch_condition(p_passing, field, B_max)
 
 
 def test_convergence_second_order():
