@@ -104,12 +104,12 @@ def plot_convergence():
 
 def plot_banana_vs_gc():
     field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=2.0)
-    # 选取被磁镜效应捕获的粒子：垂直速度大、平行速度小
-    v = np.array([2e5, 0.0, 5e3])
-    p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v)
+    # 选取被磁镜效应捕获的粒子，初始位置稍远离磁轴使香蕉宽度可见。
+    v = np.array([1e5, 0.0, 5e4])
+    p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.4, 0.0, 0.0]), v)
 
     # 导心近似用于展示完整香蕉轨道；Boris 全轨道因 μ 漂移不适合直接跑完整 bounce。
-    result_gc = guiding_center_integrate(field, p, dt=5e-8, n_steps=200000)
+    result_gc = guiding_center_integrate(field, p, dt=1e-7, n_steps=300000)
 
     R_g = np.sqrt(result_gc["trajectory"][:, 0] ** 2 + result_gc["trajectory"][:, 1] ** 2)
     Z_g = result_gc["trajectory"][:, 2]
