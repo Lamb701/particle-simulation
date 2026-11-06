@@ -50,6 +50,14 @@ pytest
 jupyter notebook notebooks/demo.ipynb
 ```
 
+**打开完整物理汇报笔记本：**
+
+```bash
+jupyter notebook notebooks/complete_report.ipynb
+```
+
+该笔记本包含：无量纲化模型推导、托卡马克磁力线与磁面可视化、pitch angle 扫描（passing/trapped 转变）、能量扫描（轨道与磁力线偏移），以及轨道特征的物理解释。
+
 ## 项目结构
 
 ```
