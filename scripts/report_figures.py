@@ -87,12 +87,10 @@ def plot_pitch_scan():
         ax.plot(R - R0, Z, lw=0.6)
         ax.set_xlabel("R - R0")
         ax.set_ylabel("Z")
-        ax.set_title(f"ξ = {ratio}")
+        kind = "trapped" if len(sign_changes) >= 2 else "passing"
+        ax.set_title(f"ξ = {ratio} ({kind})")
 
-    for ax in axes.flat:
-        ax.set_xlim(0.35, 0.42)
-        ax.set_ylim(-0.2, 0.2)
-
+    fig.suptitle("注意：各子图坐标范围不同。passing 为绕磁面整圆，trapped 为窄香蕉。", y=1.0)
     fig.tight_layout()
     fig.savefig("figures/report_pitch_scan.png", dpi=200)
     plt.close(fig)
