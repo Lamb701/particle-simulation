@@ -51,18 +51,34 @@ def test_classify_passing_in_tokamak():
 
 def test_trapped_pitch_condition():
     field = TokamakField(B0=5.0, R0=10.0, a=1.0, q0=1.0, q1=0.0)
-    # Estimate B_max on the inner side of the same flux surface.
+    B_min = np.linalg.norm(field(10.2, 0.0, 0.0))
     B_max = np.linalg.norm(field(9.8, 0.0, 0.0))
+    xi_c = np.sqrt(1.0 - B_min / B_max)
 
-    # Small v_parallel: trapped.
+    # Well below the critical pitch angle: trapped.
     v_trapped = np.array([1e5, 0.0, 1e3])
     p_trapped = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v_trapped)
     assert trapped_pitch_condition(p_trapped, field, B_max)
 
-    # Large v_parallel: passing.
+    # Well above the critical pitch angle: passing.
     v_passing = np.array([0.0, 5e5, 0.0])
     p_passing = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), v_passing)
     assert not trapped_pitch_condition(p_passing, field, B_max)
+
+    # Just below the critical pitch angle: trapped.
+    v_total = 1e5
+    xi = 0.5 * xi_c
+    v_para = xi * v_total
+    v_perp = np.sqrt(v_total**2 - v_para**2)
+    p_below = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), np.array([v_perp, v_para, 0.0]))
+    assert trapped_pitch_condition(p_below, field, B_max)
+
+    # Just above the critical pitch angle: passing.
+    xi = 1.5 * xi_c
+    v_para = xi * v_total
+    v_perp = np.sqrt(v_total**2 - v_para**2)
+    p_above = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.2, 0.0, 0.0]), np.array([v_perp, v_para, 0.0]))
+    assert not trapped_pitch_condition(p_above, field, B_max)
 
 
 def test_convergence_second_order():

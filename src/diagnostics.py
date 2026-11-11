@@ -62,7 +62,7 @@ def classify_orbit(trajectory, velocity, b_field):
 def trapped_pitch_condition(particle, b_field, b_max):
     """Check whether a particle is trapped by the pitch-angle/loss-cone criterion.
 
-    A particle is trapped if v_parallel^2 / v^2 < B_local / B_max,
+    A particle is trapped if v_parallel^2 / v^2 < 1 - B_local / B_max,
     where B_max is the maximum field strength along its orbit.
     """
     B = np.asarray(b_field(*particle.position))
@@ -72,7 +72,7 @@ def trapped_pitch_condition(particle, b_field, b_max):
     if v_total == 0 or B_mag == 0:
         return False
     v_parallel = np.dot(v, B) / B_mag
-    return (v_parallel / v_total) ** 2 < B_mag / b_max
+    return (v_parallel / v_total) ** 2 < 1.0 - B_mag / b_max
 
 
 def convergence_test(field_b, field_e, particle, dt_ref, n_steps_ref, dt_list):
