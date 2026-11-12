@@ -36,3 +36,20 @@ def flux_surface_points(R0, a, n_r=5, n_theta=100):
         Z = r * np.sin(theta)
         surfaces.append((R, Z, r))
     return surfaces
+
+
+def fieldline_angles(trajectory, R0):
+    """Return unwrapped poloidal (theta) and toroidal (phi) angles along a field line.
+
+    The winding slope dtheta/dphi equals 1/q on a circular flux surface.
+    """
+    R = np.sqrt(trajectory[:, 0] ** 2 + trajectory[:, 1] ** 2)
+    Z = trajectory[:, 2]
+    theta = np.unwrap(np.arctan2(Z, R - R0))
+    phi = np.unwrap(np.arctan2(trajectory[:, 1], trajectory[:, 0]))
+    return theta, phi
+
+
+def winding_slope(theta, phi):
+    """Estimate dtheta/dphi (= 1/q) by linear fit."""
+    return np.polyfit(phi, theta, 1)[0]

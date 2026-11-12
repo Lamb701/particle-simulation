@@ -19,7 +19,7 @@ plt.rcParams["axes.unicode_minus"] = False
 
 from src.particles import Particle
 from src.fields import TokamakField
-from src.fieldlines import integrate_fieldline, flux_surface_points
+from src.fieldlines import integrate_fieldline, flux_surface_points, fieldline_angles, winding_slope
 from src.integrators import guiding_center_integrate
 
 PROTON_MASS = 1.6726219e-27
@@ -57,6 +57,25 @@ def plot_fieldlines():
 
     fig.tight_layout()
     fig.savefig("figures/report_fieldlines.png", dpi=200)
+    plt.close(fig)
+
+
+def plot_fieldline_winding():
+    """Plot theta vs phi for several flux surfaces; slope = 1/q."""
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for r in [0.2, 0.4, 0.6, 0.8]:
+        x0 = np.array([R0 + r, 0.0, 0.0])
+        traj = integrate_fieldline(field, x0, 1e-3, 60000)
+        theta, phi = fieldline_angles(traj, R0)
+        slope = winding_slope(theta, phi)
+        q_est = 1.0 / slope
+        ax.plot(phi, theta, lw=0.8, label=f"r={r} m, q≈{q_est:.2f}")
+    ax.set_xlabel("环向角 φ [rad]")
+    ax.set_ylabel("极向角 θ [rad]")
+    ax.set_title("磁力线绕组：斜率 dθ/dφ = 1/q")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig("figures/report_fieldline_winding.png", dpi=200)
     plt.close(fig)
 
 
@@ -106,6 +125,10 @@ def plot_pitch_scan():
     plt.close(fig)
 
 
+def speed_to_eV(v):
+    return 0.5 * PROTON_MASS * v ** 2 / PROTON_CHARGE
+
+
 def plot_energy_scan():
     ratio = 0.1
     energies = [2e4, 5e4, 1e5, 2e5]
@@ -139,11 +162,14 @@ def plot_energy_scan():
     axes[0].set_xlabel("粒子速度 v [m/s]")
     axes[0].set_ylabel("导心轨道与磁力线的最大偏移 [m]")
     axes[0].set_title("导心轨道与磁力线偏移随能量的变化")
+    ax_ev = axes[0].twiny()
+    ax_ev.plot([speed_to_eV(v) for v in energies], deviations, "o-", alpha=0)
+    ax_ev.set_xlabel("质子能量 [eV]")
 
     for i, v_total in enumerate([2e4, 2e5]):
         R, Z = orbits[v_total]
         axes[1].plot(R_fl - R0, Z_fl, "k--", lw=0.8, label="磁力线" if i == 0 else None)
-        axes[1].plot(R - R0, Z, lw=0.6, label=f"v={v_total:.0e} m/s")
+        axes[1].plot(R - R0, Z, lw=0.6, label=f"v={v_total:.0e} m/s ({speed_to_eV(v_total):.0f} eV)")
 
     axes[1].set_xlabel("R - R0")
     axes[1].set_ylabel("Z")
@@ -160,6 +186,7 @@ def plot_energy_scan():
 if __name__ == "__main__":
     ensure_dir()
     plot_fieldlines()
+    plot_fieldline_winding()
     plot_pitch_scan()
     plot_energy_scan()
     print("report figures saved to figures/")
