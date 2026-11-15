@@ -20,7 +20,7 @@ plt.rcParams["axes.unicode_minus"] = False
 from src.particles import Particle
 from src.fields import TokamakField
 from src.fieldlines import integrate_fieldline, flux_surface_points, fieldline_angles, winding_slope
-from src.integrators import guiding_center_integrate
+from src.integrators import guiding_center_integrate, boris_integrate
 
 PROTON_MASS = 1.6726219e-27
 PROTON_CHARGE = 1.6021766e-19
@@ -76,6 +76,43 @@ def plot_fieldline_winding():
     ax.legend()
     fig.tight_layout()
     fig.savefig("figures/report_fieldline_winding.png", dpi=200)
+    plt.close(fig)
+
+
+def plot_boris_vs_gc():
+    """Short-time quantitative comparison of full-orbit Boris vs guiding center.
+
+    Over a few hundred gyro-periods the Boris mu drift is negligible, so the GC
+    orbit should lie within one Larmor radius of the Boris orbit. This justifies
+    using GC for long (bounce-scale) orbits where Boris mu drift accumulates.
+    """
+    v = np.array([1e5, 1.2e4, 0.0])
+    p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.4, 0.0, 0.0]), v)
+    e = lambda x, y, z: np.zeros(3)
+
+    dt = 1e-10
+    n_steps = 20000
+    rb = boris_integrate(field, e, p, dt=dt, n_steps=n_steps)
+    rg = guiding_center_integrate(field, p, dt=1e-8, n_steps=n_steps // 100)
+
+    Rb = np.sqrt(rb["trajectory"][:, 0] ** 2 + rb["trajectory"][:, 1] ** 2)
+    Zb = rb["trajectory"][:, 2]
+    Rg = np.sqrt(rg["trajectory"][:, 0] ** 2 + rg["trajectory"][:, 1] ** 2)
+    Zg = rg["trajectory"][:, 2]
+
+    B0mag = np.linalg.norm(field(*p.position))
+    vperp = np.sqrt(v @ v - (np.dot(v, field(*p.position)) / B0mag) ** 2)
+    rho_L = PROTON_MASS * vperp / (PROTON_CHARGE * B0mag)
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(Rb - R0, Zb, lw=0.4, alpha=0.7, label="Boris 全轨道")
+    ax.plot(Rg - R0, Zg, lw=1.0, label="导心轨道")
+    ax.set_xlabel("R - R0")
+    ax.set_ylabel("Z")
+    ax.set_title(f"短时对比：导心轨道在 Boris 回旋带内（ρ_L≈{rho_L*1e3:.2f} mm）")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig("figures/report_boris_vs_gc.png", dpi=200)
     plt.close(fig)
 
 
@@ -187,6 +224,7 @@ if __name__ == "__main__":
     ensure_dir()
     plot_fieldlines()
     plot_fieldline_winding()
+    plot_boris_vs_gc()
     plot_pitch_scan()
     plot_energy_scan()
     print("report figures saved to figures/")
