@@ -56,7 +56,17 @@ jupyter notebook notebooks/demo.ipynb
 jupyter notebook notebooks/complete_report.ipynb
 ```
 
-该笔记本包含：无量纲化模型推导、托卡马克磁力线与磁面可视化、pitch angle 扫描（passing/trapped 转变）、能量扫描（轨道与磁力线偏移），以及轨道特征的物理解释。
+该笔记本包含：无量纲化模型推导、托卡马克磁力线/磁面/绕组（1/q）可视化、pitch angle 扫描（passing/trapped 转变及分界）、能量扫描（轨道与磁力线偏移，eV 标注）、Boris 与导心短时对比，以及轨道特征的物理解释和大创方向。
+
+**直接查看汇报（无需运行）：** 打开 `notebooks/complete_report.html`。
+
+**一键复现全部报告图：**
+
+```bash
+python scripts/report_figures.py
+```
+
+生成 `figures/report_*.png`（磁力线、绕组、Boris/导心对比、pitch 扫描、分界、能量扫描）。
 
 ## 项目结构
 
@@ -65,15 +75,19 @@ plasma-simulation/
 ├── src/
 │   ├── particles.py      # 粒子状态类
 │   ├── fields.py         # 磁场和电场定义
+│   ├── fieldlines.py     # 磁力线积分、磁面、绕组角
 │   ├── integrators.py    # Boris 推进器与导心推进器
 │   ├── diagnostics.py    # 能量、磁矩、分类和收敛诊断
 │   └── gui.py            # 交互式可视化界面
 ├── scripts/
-│   └── validation.py     # 批量生成验证图
+│   ├── validation.py     # 批量生成数值验证图
+│   └── report_figures.py # 一键复现全部汇报图
 ├── notebooks/
-│   └── demo.ipynb        # 带公式和图的汇报文档
+│   ├── demo.ipynb        # 带公式和图的汇报文档
+│   ├── complete_report.ipynb  # 完整物理汇报
+│   └── complete_report.html   # 汇报的离线 HTML 版
 ├── tests/                # 单元测试
-├── figures/              # 生成的结果图（由验证脚本产生）
+├── figures/              # 生成的结果图
 ├── README.md
 └── requirements.txt
 ```

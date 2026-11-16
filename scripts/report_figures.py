@@ -39,11 +39,13 @@ def plot_fieldlines():
 
     fig = plt.figure(figsize=(14, 6))
     ax1 = fig.add_subplot(1, 2, 1, projection="3d")
-    ax1.plot(traj[:, 0], traj[:, 1], traj[:, 2], lw=0.6)
+    phi = np.arctan2(traj[:, 1], traj[:, 0])
+    sc = ax1.scatter(traj[::20, 0], traj[::20, 1], traj[::20, 2], c=phi[::20], cmap="viridis", s=2)
+    fig.colorbar(sc, ax=ax1, shrink=0.6, label="环向角 φ")
     ax1.set_xlabel("x")
     ax1.set_ylabel("y")
     ax1.set_zlabel("z")
-    ax1.set_title("托卡马克磁力线（三维螺旋）")
+    ax1.set_title("磁力线（三维，按环向角 φ 上色）")
 
     ax2 = fig.add_subplot(1, 2, 2)
     R = np.sqrt(traj[:, 0] ** 2 + traj[:, 1] ** 2)
@@ -90,26 +92,33 @@ def plot_boris_vs_gc():
     p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.4, 0.0, 0.0]), v)
     e = lambda x, y, z: np.zeros(3)
 
+    B0mag = np.linalg.norm(field(*p.position))
+    vperp = np.sqrt(v @ v - (np.dot(v, field(*p.position)) / B0mag) ** 2)
+    rho_L = PROTON_MASS * vperp / (PROTON_CHARGE * B0mag)
+    T_gyro = 2 * np.pi * PROTON_MASS / (PROTON_CHARGE * B0mag)
+
+    # Only ~5 gyro-periods so the helix and the central GC point are visible.
     dt = 1e-10
-    n_steps = 20000
-    rb = boris_integrate(field, e, p, dt=dt, n_steps=n_steps)
-    rg = guiding_center_integrate(field, p, dt=1e-8, n_steps=n_steps // 100)
+    n_boris = int(5 * T_gyro / dt)
+    rb = boris_integrate(field, e, p, dt=dt, n_steps=n_boris)
+    rg = guiding_center_integrate(field, p, dt=1e-9, n_steps=int(5 * T_gyro / 1e-9))
 
     Rb = np.sqrt(rb["trajectory"][:, 0] ** 2 + rb["trajectory"][:, 1] ** 2)
     Zb = rb["trajectory"][:, 2]
     Rg = np.sqrt(rg["trajectory"][:, 0] ** 2 + rg["trajectory"][:, 1] ** 2)
     Zg = rg["trajectory"][:, 2]
 
-    B0mag = np.linalg.norm(field(*p.position))
-    vperp = np.sqrt(v @ v - (np.dot(v, field(*p.position)) / B0mag) ** 2)
-    rho_L = PROTON_MASS * vperp / (PROTON_CHARGE * B0mag)
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    ax.plot(Rb - R0, Zb, lw=0.4, alpha=0.7, label="Boris 全轨道")
-    ax.plot(Rg - R0, Zg, lw=1.0, label="导心轨道")
-    ax.set_xlabel("R - R0")
-    ax.set_ylabel("Z")
-    ax.set_title(f"短时对比：导心轨道在 Boris 回旋带内（ρ_L≈{rho_L*1e3:.2f} mm）")
+    cR, cZ = Rg.mean(), Zg.mean()
+    fig, ax = plt.subplots(figsize=(7, 7))
+    ax.plot((Rb - cR) * 1e3, (Zb - cZ) * 1e3, lw=0.6, label="Boris 全轨道（回旋）")
+    ax.plot((Rg - cR) * 1e3, (Zg - cZ) * 1e3, "o-", ms=2, lw=1.0, label="导心轨道")
+    lim = 2 * rho_L * 1e3
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_xlabel("R - R_gc [mm]")
+    ax.set_ylabel("Z - Z_gc [mm]")
+    ax.set_title(f"5 个回旋周期：导心在回旋圆中心（ρ_L≈{rho_L*1e3:.2f} mm）")
+    ax.set_aspect("equal")
     ax.legend()
     fig.tight_layout()
     fig.savefig("figures/report_boris_vs_gc.png", dpi=200)
@@ -127,18 +136,18 @@ def plot_pitch_scan():
         v_perp = np.sqrt(v_total ** 2 - v_para ** 2)
         v = np.array([v_perp, v_para, 0.0])
         p = Particle(PROTON_CHARGE, PROTON_MASS, np.array([10.4, 0.0, 0.0]), v)
-        result = guiding_center_integrate(field, p, dt=1e-7, n_steps=400000)
+        result = guiding_center_integrate(field, p, dt=1e-7, n_steps=80000)
 
         vparas = result["v_parallel"]
         sign_changes = np.where(np.diff(np.sign(vparas)) != 0)[0]
         sign_counts.append(len(sign_changes))
-        if len(sign_changes) >= 2 and ratio < 0.27:
+        if len(sign_changes) >= 2:
             start, end = sign_changes[0], sign_changes[1]
             R = np.sqrt(result["trajectory"][start:end, 0] ** 2 + result["trajectory"][start:end, 1] ** 2)
             Z = result["trajectory"][start:end, 2]
         else:
-            R = np.sqrt(result["trajectory"][:200000, 0] ** 2 + result["trajectory"][:200000, 1] ** 2)
-            Z = result["trajectory"][:200000, 2]
+            R = np.sqrt(result["trajectory"][:, 0] ** 2 + result["trajectory"][:, 1] ** 2)
+            Z = result["trajectory"][:, 2]
 
         ax.plot(R - R0, Z, lw=0.6)
         ax.set_xlabel("R - R0")
