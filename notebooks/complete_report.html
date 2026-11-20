@@ -8211,31 +8211,13 @@ $$\frac{v_\parallel^2}{v^2} &lt; 1 - \frac{B_{min}}{B_{max}} \quad \Rightarrow \
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=qzt8do1u6t">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="6.-%E5%90%8E%E7%BB%AD%E5%B7%A5%E4%BD%9C%EF%BC%88%E5%A4%A7%E5%88%9B%E6%96%B9%E5%90%91%EF%BC%89">6. 后续工作（大创方向）<a class="anchor-link" href="#6.-%E5%90%8E%E7%BB%AD%E5%B7%A5%E4%BD%9C%EF%BC%88%E5%A4%A7%E5%88%9B%E6%96%B9%E5%90%91%EF%BC%89">¶</a></h2><p>本项目已为后续研究预留接口，可沿以下方向扩展（与老师拟布置的大创方向一致）：</p>
-<ol>
-<li><strong>真实 EFIT 平衡</strong>：<code>src/fields.py</code> 的磁场为 callable 接口，可替换为读取 EFIT <code>g-eqdsk</code> 文件重建的 Grad-Shafranov 平衡，研究实际位形（含 Shafranov 位移、三角形变）中的轨道。</li>
-<li><strong>径向电场与 E×B 漂移</strong>：Boris 推进器已支持任意 <code>E(x,y,z)</code>；导心方程可加入 $E\times B$ 与极化漂移，研究电场对约束和旋转的影响。</li>
-<li><strong>碰撞与输运</strong>：在粒子推进中加入 pitch-angle 散射/蒙特卡洛碰撞算子，从单粒子轨道过渡到经典/新经典输运。</li>
-<li><strong>湍流与多粒子</strong>：进一步发展为 PIC 或 gyrokinetic 框架，研究湍流输运。</li>
-</ol>
-<p>当前代码的模块化结构（fields / particles / integrators / diagnostics）使上述扩展只需替换或新增相应模块，不影响已有验证。</p>
-</div>
-</div>
-</div>
-</div>
 <div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=summary">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="7.-%E6%80%BB%E7%BB%93">7. 总结<a class="anchor-link" href="#7.-%E6%80%BB%E7%BB%93">¶</a></h2><p>本汇报完成了以下工作：</p>
+<h2 id="6.-%E6%80%BB%E7%BB%93">6. 总结<a class="anchor-link" href="#6.-%E6%80%BB%E7%BB%93">¶</a></h2><p>本汇报完成了以下工作：</p>
 <ol>
 <li>推导了带电粒子运动方程的无量纲形式，明确了关键参数 $\rho_*$ 的物理意义。</li>
 <li>画出了托卡马克磁力线、极向面投影与绕组（1/q）图，并叠加磁面。</li>
