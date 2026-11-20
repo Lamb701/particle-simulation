@@ -7802,14 +7802,9 @@ a.anchor-link {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="%E6%89%98%E5%8D%A1%E9%A9%AC%E5%85%8B%E4%B8%AD%E5%B8%A6%E7%94%B5%E7%B2%92%E5%AD%90%E8%BD%A8%E9%81%93%E7%89%B9%E5%BE%81%E6%B1%87%E6%8A%A5">托卡马克中带电粒子轨道特征汇报<a class="anchor-link" href="#%E6%89%98%E5%8D%A1%E9%A9%AC%E5%85%8B%E4%B8%AD%E5%B8%A6%E7%94%B5%E7%B2%92%E5%AD%90%E8%BD%A8%E9%81%93%E7%89%B9%E5%BE%81%E6%B1%87%E6%8A%A5">¶</a></h1><p>本汇报围绕带电粒子在托卡马克磁场中的运动展开，包含四个部分：</p>
-<ol>
-<li>带电粒子运动方程及其无量纲化；</li>
-<li>托卡马克磁力线与极向面投影；</li>
-<li>改变粒子速度的 pitch angle，观察 passing 与 trapped 轨道的转变；</li>
-<li>改变粒子能量，观察轨道与磁力线的偏移。</li>
-</ol>
-<p>最后对轨道特征的物理成因进行解释。</p>
+<h1 id="%E6%89%98%E5%8D%A1%E9%A9%AC%E5%85%8B%E4%B8%AD%E5%B8%A6%E7%94%B5%E7%B2%92%E5%AD%90%E8%BD%A8%E9%81%93%E7%9A%84%E6%95%B0%E5%80%BC%E6%A8%A1%E6%8B%9F">托卡马克中带电粒子轨道的数值模拟<a class="anchor-link" href="#%E6%89%98%E5%8D%A1%E9%A9%AC%E5%85%8B%E4%B8%AD%E5%B8%A6%E7%94%B5%E7%B2%92%E5%AD%90%E8%BD%A8%E9%81%93%E7%9A%84%E6%95%B0%E5%80%BC%E6%A8%A1%E6%8B%9F">¶</a></h1><p>这学期修了等离子体模拟和等离子体导论，我把之前写的 Boris 推进器接着往下做，攒成这个小项目：算单个带电粒子在托卡马克（以及磁镜）磁场里的轨道，把课上讲的 passing / trapped、香蕉轨道这些东西真正算出来看一看。</p>
+<p>这份笔记按"模型 → 磁力线 → 改 pitch angle → 改能量"的顺序记录我做的数值实验，最后写一点自己对轨道形状的理解。所有图都能用 <code>scripts/report_figures.py</code> 复现，不想跑代码的话直接打开 <code>complete_report.html</code> 就行。</p>
+<p>先说清楚定位：这是<strong>单粒子、静磁场</strong>的教学演示，磁场是解析模型而不是 Grad-Shafranov 平衡解，没有自洽场和碰撞。它用来把轨道物理和数值方法弄明白，不是完整的等离子体模拟。</p>
 </div>
 </div>
 </div>
@@ -7820,26 +7815,14 @@ a.anchor-link {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="1.-%E6%A8%A1%E5%9E%8B%EF%BC%9A%E5%B8%A6%E7%94%B5%E7%B2%92%E5%AD%90%E8%BF%90%E5%8A%A8%E6%96%B9%E7%A8%8B%E6%97%A0%E9%87%8F%E7%BA%B2%E5%8C%96">1. 模型：带电粒子运动方程无量纲化<a class="anchor-link" href="#1.-%E6%A8%A1%E5%9E%8B%EF%BC%9A%E5%B8%A6%E7%94%B5%E7%B2%92%E5%AD%90%E8%BF%90%E5%8A%A8%E6%96%B9%E7%A8%8B%E6%97%A0%E9%87%8F%E7%BA%B2%E5%8C%96">¶</a></h2><p>带电粒子在电磁场中的运动由洛伦兹力决定：
-$$m\frac{d\mathbf{v}}{dt} = q(\mathbf{E} + \mathbf{v} \times \mathbf{B}), \quad \frac{d\mathbf{x}}{dt} = \mathbf{v}$$</p>
-<p>为突出物理参数的作用，对方程进行无量纲化。取：</p>
-<ul>
-<li>长度：$\mathbf{x} = R_0 \tilde{\mathbf{x}}$</li>
-<li>时间：$t = \Omega_c^{-1} \tilde{t}$，其中 $\Omega_c = qB_0/m$ 为回旋频率</li>
-<li>速度：$\mathbf{v} = v_0 \tilde{\mathbf{v}}$，$v_0$ 为特征速度</li>
-<li>磁场：$\mathbf{B} = B_0 \tilde{\mathbf{B}}$，$\mathbf{E} = E_0 \tilde{\mathbf{E}}$</li>
-</ul>
-<p>代入得速度方程：
-$$\frac{d\tilde{\mathbf{v}}}{d\tilde{t}} = \frac{E_0}{v_0 B_0} \tilde{\mathbf{E}} + \tilde{\mathbf{v}} \times \tilde{\mathbf{B}}$$</p>
-<p>位置方程：
-$$\frac{d\tilde{\mathbf{x}}}{d\tilde{t}} = \frac{v_0}{\Omega_c R_0} \tilde{\mathbf{v}} = \rho_* \tilde{\mathbf{v}}$$</p>
-<p>若 $E_0 = 0$，则速度方程简化为：
-$$\frac{d\tilde{\mathbf{v}}}{d\tilde{t}} = \tilde{\mathbf{v}} \times \tilde{\mathbf{B}}$$</p>
-<p>关键无量纲参数为：
-$$\rho_* = \frac{v_0}{\Omega_c R_0} = \frac{\rho_L}{R_0}$$</p>
-<p>即拉莫尔半径与装置大半径之比。$\rho_* \ll 1$ 时导心近似成立，轨道紧贴磁力线；$\rho_*$ 增大时，轨道与磁力线的偏移显著。</p>
-<p><strong>本算例参数</strong>：$v_0 = 1.2\times10^5$ m/s（约 75 eV 质子），$B_0 = 5$ T，$R_0 = 10$ m，计算得 $\rho_L \approx 0.25$ mm，$\rho_* \approx 2.5\times10^{-5}$。这说明导心近似非常好，但也意味着轨道偏移在装置尺度上很小，需要放大才能看清。</p>
-<p><strong>说明</strong>：代码使用 SI 单位实现，与上述无量纲方程等价。</p>
+<h2 id="1.-%E6%A8%A1%E5%9E%8B%E5%92%8C%E6%97%A0%E9%87%8F%E7%BA%B2%E5%8C%96">1. 模型和无量纲化<a class="anchor-link" href="#1.-%E6%A8%A1%E5%9E%8B%E5%92%8C%E6%97%A0%E9%87%8F%E7%BA%B2%E5%8C%96">¶</a></h2><p>出发点就是洛伦兹方程：</p>
+<p>$$m\frac{d\mathbf{v}}{dt} = q(\mathbf{E} + \mathbf{v} \times \mathbf{B}), \quad \frac{d\mathbf{x}}{dt} = \mathbf{v}$$</p>
+<p>这里取 $\mathbf{E}=0$。因为 $\mathbf{v}\cdot(\mathbf{v}\times\mathbf{B})=0$，磁场力不做功，动能应该严格守恒——后面能量图就是拿这个当 sanity check。</p>
+<p>为了看清哪个参数在起作用，我做无量纲化：长度用 $R_0$、时间用回旋周期 $\Omega_c^{-1}$（$\Omega_c=qB_0/m$）、速度用 $v_0$、磁场用 $B_0$。代进去得到</p>
+<p>$$\frac{d\tilde{\mathbf{v}}}{d\tilde{t}} = \tilde{\mathbf{v}} \times \tilde{\mathbf{B}}, \qquad \frac{d\tilde{\mathbf{x}}}{d\tilde{t}} = \rho_* \tilde{\mathbf{v}}$$</p>
+<p>其中 $\rho_* = v_0/(\Omega_c R_0) = \rho_L/R_0$ 是拉莫尔半径和装置大半径之比。注意 $\rho_*$ 是出现在<strong>位置方程</strong>里的，它衡量导心移动相对回旋有多慢。</p>
+<p>代本算例的数：$v_0=1.2\times10^5$ m/s（约 75 eV 的质子），$B_0=5$ T，$R_0=10$ m，算出 $\rho_L\approx0.25$ mm，$\rho_*\approx2.5\times10^{-5}$。这个数极小，说明导心近似非常好；但反过来也意味着漂移在装置尺度上只有毫米级，图不放大根本看不见（后面能量扫描要 zoom 就是这个原因）。</p>
+<p>代码里我直接用 SI 单位写，和上面的无量纲方程只差一个缩放，是等价的。</p>
 </div>
 </div>
 </div>
@@ -7887,7 +7870,8 @@ $$\rho_* = \frac{v_0}{\Omega_c R_0} = \frac{\rho_L}{R_0}$$</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="2.-%E6%89%98%E5%8D%A1%E9%A9%AC%E5%85%8B%E7%A3%81%E5%8A%9B%E7%BA%BF%E4%B8%8E%E6%9E%81%E5%90%91%E9%9D%A2%E6%8A%95%E5%BD%B1">2. 托卡马克磁力线与极向面投影<a class="anchor-link" href="#2.-%E6%89%98%E5%8D%A1%E9%A9%AC%E5%85%8B%E7%A3%81%E5%8A%9B%E7%BA%BF%E4%B8%8E%E6%9E%81%E5%90%91%E9%9D%A2%E6%8A%95%E5%BD%B1">¶</a></h2><p>托卡马克磁力线是绕环向螺旋前进的曲线，由环向场和极向场共同决定。磁力线在三维空间呈螺旋状，在极向面（R-Z 平面）上的投影为闭合曲线。</p>
+<h2 id="2.-%E7%A3%81%E5%8A%9B%E7%BA%BF%E9%95%BF%E4%BB%80%E4%B9%88%E6%A0%B7">2. 磁力线长什么样<a class="anchor-link" href="#2.-%E7%A3%81%E5%8A%9B%E7%BA%BF%E9%95%BF%E4%BB%80%E4%B9%88%E6%A0%B7">¶</a></h2><p>托卡马克的磁力线不是简单的圆，它一边绕环（环向 $\phi$）一边绕小截面（极向 $\theta$），是螺旋线。我把磁力线积分出来画了三维图和极向面 $(R,Z)$ 投影，投影上叠了几层圆形磁面作参考。</p>
+<p>更能说明问题的是绕组：沿一条磁力线记录 $\theta$ 和 $\phi$，画 $\theta$-$\phi$ 图应该是直线，斜率就是 $1/q$（$q$ 是安全因子）。我对 $r=0.2/0.4/0.6/0.8$ m 四条磁面各积一条线，拟合出的 $q\approx1.09/1.34/1.74/2.25$，和我设的剖面 $q(r)=1+2(r/a)^2$（理论值 1.08/1.32/1.72/2.28）基本吻合。这等于独立检查了一遍磁场模型写没写对。</p>
 </div>
 </div>
 </div>
@@ -7974,11 +7958,9 @@ $$\rho_* = \frac{v_0}{\Omega_c R_0} = \frac{\rho_L}{R_0}$$</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3.-%E6%94%B9%E5%8F%98-pitch-angle%EF%BC%9Apassing-%E4%B8%8E-trapped-%E8%BD%A8%E9%81%93">3. 改变 pitch angle：passing 与 trapped 轨道<a class="anchor-link" href="#3.-%E6%94%B9%E5%8F%98-pitch-angle%EF%BC%9Apassing-%E4%B8%8E-trapped-%E8%BD%A8%E9%81%93">¶</a></h2><p>固定粒子总速度，改变平行速度占比 $v_\parallel/v$（即改变 pitch angle），可以观察到粒子从通行（passing）到捕获（trapped）的转变。</p>
-<ul>
-<li><strong>passing</strong>：$v_\parallel/v$ 较大，粒子沿磁力线持续前进，形成通行轨道。</li>
-<li><strong>trapped</strong>：$v_\parallel/v$ 较小，粒子被磁镜效应捕获，形成香蕉轨道。</li>
-</ul>
+<h2 id="3.-%E6%94%B9-pitch-angle%EF%BC%9A%E4%BB%8E-passing-%E5%88%B0-trapped">3. 改 pitch angle：从 passing 到 trapped<a class="anchor-link" href="#3.-%E6%94%B9-pitch-angle%EF%BC%9A%E4%BB%8E-passing-%E5%88%B0-trapped">¶</a></h2><p>固定总速度 $v=1.2\times10^5$ m/s，只改平行速度占比 $\xi=v_\parallel/v$。$\xi$ 大的粒子平行速度够大，能翻过强场区一直绕环跑，是 passing，极向面上画出来是绕磁面一整圈；$\xi$ 小的粒子会被磁镜弹回来，是 trapped，画出来是窄香蕉。</p>
+<p>我特意在理论分界附近加密了取值（0.30/0.28/0.27/0.25），想亲眼看到转变。分界由捕获判据给出（推导见 §5.1）：$\xi_c=\sqrt{1-B_{min}/B_{max}}\approx0.277$。下面第二张图统计 $v_\parallel$ 变号次数随 $\xi$ 的变化，可以看到跳变正好落在 0.277 附近：0.27 还在 bounce（变号多次），0.28 就一次都不变号了。</p>
+<p>提醒一句：八个子图坐标范围不一样（passing 是整圆、trapped 是窄香蕉，量级差很多），不要直接比大小，看形状和标签。</p>
 </div>
 </div>
 </div>
@@ -8064,8 +8046,8 @@ $$\rho_* = \frac{v_0}{\Omega_c R_0} = \frac{\rho_L}{R_0}$$</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="4.-%E6%94%B9%E5%8F%98%E7%B2%92%E5%AD%90%E8%83%BD%E9%87%8F%EF%BC%9A%E8%BD%A8%E9%81%93%E4%B8%8E%E7%A3%81%E5%8A%9B%E7%BA%BF%E7%9A%84%E5%81%8F%E7%A7%BB">4. 改变粒子能量：轨道与磁力线的偏移<a class="anchor-link" href="#4.-%E6%94%B9%E5%8F%98%E7%B2%92%E5%AD%90%E8%83%BD%E9%87%8F%EF%BC%9A%E8%BD%A8%E9%81%93%E4%B8%8E%E7%A3%81%E5%8A%9B%E7%BA%BF%E7%9A%84%E5%81%8F%E7%A7%BB">¶</a></h2><p>固定 pitch angle，改变粒子能量。能量越高，拉莫尔半径越大，导心轨道与磁力线的偏移越明显。</p>
-<p>这里用同一条磁力线作为参考，比较不同能量下导心轨道与磁力线的偏离。</p>
+<h2 id="4.-%E6%94%B9%E8%83%BD%E9%87%8F%EF%BC%9A%E8%BD%A8%E9%81%93%E5%81%8F%E7%A6%BB%E7%A3%81%E5%8A%9B%E7%BA%BF%E5%A4%9A%E5%B0%91">4. 改能量：轨道偏离磁力线多少<a class="anchor-link" href="#4.-%E6%94%B9%E8%83%BD%E9%87%8F%EF%BC%9A%E8%BD%A8%E9%81%93%E5%81%8F%E7%A6%BB%E7%A3%81%E5%8A%9B%E7%BA%BF%E5%A4%9A%E5%B0%91">¶</a></h2><p>固定 $\xi=0.1$（trapped），把速度从 $2\times10^4$ 扫到 $2\times10^5$ m/s（约 2~209 eV）。能量越高 $\rho_L$ 越大，香蕉越宽，导心轨道离磁力线越远。</p>
+<p>左图我把"导心轨道到磁力线的最大距离"随速度画出来，上轴标了 eV，基本是线性增长（因为 $\rho_L\propto v$）。右图把最低和最高能量的轨道叠在磁力线上，坐标放大到毫米级才看得出两条腿分开约 3~4 mm——不放大它们几乎贴在一起，这也是 $\rho_*$ 太小的直接后果。这个宽度和香蕉宽度标度 $q\rho_L/\sqrt{\varepsilon}$ 同量级。</p>
 </div>
 </div>
 </div>
@@ -8158,9 +8140,8 @@ $$\rho_* = \frac{v_0}{\Omega_c R_0} = \frac{\rho_L}{R_0}$$</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="4.1-%E5%85%A8%E7%B2%92%E5%AD%90-Boris-%E4%B8%8E%E5%AF%BC%E5%BF%83%E8%BD%A8%E9%81%93%E7%9A%84%E7%9F%AD%E6%97%B6%E5%AE%9A%E9%87%8F%E5%AF%B9%E6%AF%94">4.1 全粒子 Boris 与导心轨道的短时定量对比<a class="anchor-link" href="#4.1-%E5%85%A8%E7%B2%92%E5%AD%90-Boris-%E4%B8%8E%E5%AF%BC%E5%BF%83%E8%BD%A8%E9%81%93%E7%9A%84%E7%9F%AD%E6%97%B6%E5%AE%9A%E9%87%8F%E5%AF%B9%E6%AF%94">¶</a></h3><p>在短时间（几百个回旋周期）内，Boris 的磁矩漂移可以忽略，此时导心轨道应落在 Boris 全轨道的回旋带内（偏差约一个拉莫尔半径 $\rho_L$）。</p>
-<p>图 <code>figures/report_boris_vs_gc.png</code>（可由 <code>scripts/report_figures.py</code> 复现）中，蓝色为 Boris 全轨道（含快速回旋，形成宽约 $2\rho_L$ 的带），橙色为导心轨道（位于带中心）。二者短时内一致，验证了导心近似的正确性。</p>
-<p>而在长时间（bounce 尺度，~ms）下，Boris 的磁矩漂移会累积、轨道逐渐失真；导心近似因假设 $\mu$ 守恒，更适合展示完整香蕉轨道。这就是本项目<strong>长轨道用导心、短轨道/回旋尺度用 Boris</strong> 的原因。</p>
+<h3 id="4.1-%E9%A1%BA%E4%BE%BF%E6%A0%B8%E5%AF%B9%EF%BC%9ABoris-%E5%85%A8%E8%BD%A8%E9%81%93-vs-%E5%AF%BC%E5%BF%83">4.1 顺便核对：Boris 全轨道 vs 导心<a class="anchor-link" href="#4.1-%E9%A1%BA%E4%BE%BF%E6%A0%B8%E5%AF%B9%EF%BC%9ABoris-%E5%85%A8%E8%BD%A8%E9%81%93-vs-%E5%AF%BC%E5%BF%83">¶</a></h3><p>长轨道我用导心算，但得确认导心没算错。办法是在短时间（几个回旋周期，此时 Boris 的磁矩漂移还可忽略）里把 Boris 全轨道和导心轨道画在一起：Boris 因为含快速回旋会画出一个宽约 $2\rho_L$ 的圆带，导心应该落在带中心。</p>
+<p>下图只画 5 个回旋周期、坐标取 $\pm2\rho_L$，能清楚看到回旋圆和中心的导心点，二者一致。而一旦拉到 bounce 尺度（~ms），Boris 的磁矩漂移会累积、轨道失真，导心因为直接把 $\mu$ 当守恒量反而稳定——这就是我长轨道用导心、短轨道用 Boris 的原因。</p>
 </div>
 </div>
 </div>
@@ -8198,15 +8179,13 @@ $$\rho_* = \frac{v_0}{\Omega_c R_0} = \frac{\rho_L}{R_0}$$</p>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="5.-%E8%BD%A8%E9%81%93%E7%89%B9%E5%BE%81%E7%9A%84%E7%89%A9%E7%90%86%E8%A7%A3%E9%87%8A">5. 轨道特征的物理解释<a class="anchor-link" href="#5.-%E8%BD%A8%E9%81%93%E7%89%B9%E5%BE%81%E7%9A%84%E7%89%A9%E7%90%86%E8%A7%A3%E9%87%8A">¶</a></h2><h3 id="5.1-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E6%9C%89-passing-%E4%B8%8E-trapped-%E4%B9%8B%E5%88%86%EF%BC%9F">5.1 为什么会有 passing 与 trapped 之分？<a class="anchor-link" href="#5.1-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E6%9C%89-passing-%E4%B8%8E-trapped-%E4%B9%8B%E5%88%86%EF%BC%9F">¶</a></h3><p>托卡马克中磁场强度随位置变化：环内侧磁场强，环外侧磁场弱。当粒子沿磁力线向强场区运动时，磁矩守恒使垂直速度增大、平行速度减小。若初始平行速度太小，粒子会在某处平行速度降为零并被反射，形成 trapped 轨道；若平行速度足够大，粒子可以越过强场区继续沿磁力线运动，形成 passing 轨道。</p>
-<p><strong>捕获判据推导</strong>：磁矩 $\mu = v_\perp^2/(2B)$ 守恒。设粒子在外侧中平面（$B = B_{min}$）的平行速度占比为 $\xi = v_\parallel/v$。当粒子运动到反射点（$v_\parallel = 0$）时，垂直速度满足 $v_\perp^2 = v^2$，对应磁场 $B_t = B_{min}/(1-\xi^2)$。粒子被捕获要求反射点磁场不超过轨道上的最大磁场 $B_{max}$，即 $B_t \le B_{max}$，从而得到：
-$$\xi^2 \le 1 - \frac{B_{min}}{B_{max}}$$</p>
-<p>因此捕获判据为：
-$$\frac{v_\parallel^2}{v^2} &lt; 1 - \frac{B_{min}}{B_{max}} \quad \Rightarrow \quad \text{trapped}$$</p>
-<p>对本项目 $r = 0.4$ m 磁面，$B_{min} = 4.81$ T，$B_{max} = 5.21$ T，临界 pitch $\xi_c = \sqrt{1 - B_{min}/B_{max}} \approx 0.277$。</p>
-<h3 id="5.2-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%A6%99%E8%95%89%E8%BD%A8%E9%81%93%E6%98%AF%E9%A6%99%E8%95%89%E5%BD%A2%EF%BC%9F">5.2 为什么香蕉轨道是香蕉形？<a class="anchor-link" href="#5.2-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%A6%99%E8%95%89%E8%BD%A8%E9%81%93%E6%98%AF%E9%A6%99%E8%95%89%E5%BD%A2%EF%BC%9F">¶</a></h3><p>Trapped 粒子在磁镜点之间来回弹跳，同时受到 $\nabla B$ 漂移和曲率漂移的影响。在环向场中，$\nabla B$ 漂移和曲率漂移都沿竖直方向（$\pm Z$）。粒子在上、下两个 bounce 段的平行运动方向相反，而竖直漂移方向不变，二者叠加使导心在 R-Z 平面上闭合成一条弯曲的香蕉形轨道。其径向宽度即香蕉宽度 $\Delta_b \sim q\rho_L/\sqrt{\varepsilon}$，与 §4 实测的 ~3 mm 同量级。</p>
-<h3 id="5.3-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%83%BD%E9%87%8F%E9%AB%98%E4%BC%9A%E5%81%8F%E7%A6%BB%E7%A3%81%E5%8A%9B%E7%BA%BF%EF%BC%9F">5.3 为什么能量高会偏离磁力线？<a class="anchor-link" href="#5.3-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%83%BD%E9%87%8F%E9%AB%98%E4%BC%9A%E5%81%8F%E7%A6%BB%E7%A3%81%E5%8A%9B%E7%BA%BF%EF%BC%9F">¶</a></h3><p>拉莫尔半径 $\rho_L = m v_\perp / (qB)$ 随能量增加而增大。导心近似要求 $\rho_L$ 远小于磁场变化尺度（如 $R_0$ 或 $a$）。当能量较高时，$\rho_L$ 与装置尺度可比，导心轨道与磁力线的偏移显著，漂移效应（$\nabla B$、曲率）也更加突出。</p>
-<h3 id="5.4-%E5%AF%BC%E5%BF%83%E8%BF%91%E4%BC%BC%E4%B8%8E%E5%85%A8%E7%B2%92%E5%AD%90%E8%BD%A8%E9%81%93%E7%9A%84%E5%85%B3%E7%B3%BB">5.4 导心近似与全粒子轨道的关系<a class="anchor-link" href="#5.4-%E5%AF%BC%E5%BF%83%E8%BF%91%E4%BC%BC%E4%B8%8E%E5%85%A8%E7%B2%92%E5%AD%90%E8%BD%A8%E9%81%93%E7%9A%84%E5%85%B3%E7%B3%BB">¶</a></h3><p>导心近似忽略了粒子的快速回旋，只保留缓慢漂移。当 $\rho_* = \rho_L/R_0 \ll 1$ 时，导心近似与全粒子轨道高度一致；当 $\rho_*$ 较大时，导心近似误差增大，全粒子轨道与磁力线的偏移更加明显。</p>
+<h2 id="5.-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BD%A8%E9%81%93%E9%95%BF%E8%BF%99%E6%A0%B7%EF%BC%88%E8%87%AA%E5%B7%B1%E7%9A%84%E7%90%86%E8%A7%A3%EF%BC%89">5. 为什么轨道长这样（自己的理解）<a class="anchor-link" href="#5.-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BD%A8%E9%81%93%E9%95%BF%E8%BF%99%E6%A0%B7%EF%BC%88%E8%87%AA%E5%B7%B1%E7%9A%84%E7%90%86%E8%A7%A3%EF%BC%89">¶</a></h2><h3 id="5.1-passing-/-trapped-%E7%9A%84%E5%88%86%E7%95%8C">5.1 passing / trapped 的分界<a class="anchor-link" href="#5.1-passing-/-trapped-%E7%9A%84%E5%88%86%E7%95%8C">¶</a></h3><p>环向场 $B_\phi\propto1/R$，所以环内侧强、外侧弱。粒子往强场区走时，磁矩 $\mu=v_\perp^2/(2B)$ 近似守恒迫使 $v_\perp$ 增大、$v_\parallel$ 减小（镜力 $-\mu\nabla_\parallel B$）。$v_\parallel$ 够小就会在某处降到 0 被弹回。</p>
+<p>推一下分界：设外侧中平面（$B=B_{min}$）处 $\xi=v_\parallel/v$，则 $\mu=v^2(1-\xi^2)/(2B_{min})$。反射点 $v_\parallel=0$，$v_\perp^2=v^2$，对应 $B_{ref}=B_{min}/(1-\xi^2)$。被捕获要求 $B_{ref}\le B_{max}$，即</p>
+<p>$$\xi^2 \le 1-\frac{B_{min}}{B_{max}}$$</p>
+<p>本算例 $B_{min}=4.81$ T、$B_{max}=5.21$ T，得 $\xi_c\approx0.277$，和 §3 数值跳变一致。</p>
+<h3 id="5.2-%E9%A6%99%E8%95%89%E4%B8%BA%E4%BB%80%E4%B9%88%E6%98%AF%E9%A6%99%E8%95%89">5.2 香蕉为什么是香蕉<a class="anchor-link" href="#5.2-%E9%A6%99%E8%95%89%E4%B8%BA%E4%BB%80%E4%B9%88%E6%98%AF%E9%A6%99%E8%95%89">¶</a></h3><p>trapped 粒子在两个镜点间 bounce。环向场里 $\nabla B$ 漂移和曲率漂移都沿竖直方向（$\pm Z$）。粒子上下两段 bounce 的平行运动方向相反，而竖直漂移把它们往不同侧推，合起来导心就在极向面闭合成一条弯曲的香蕉。它的径向宽度就是香蕉宽度 $\Delta_b\sim q\rho_L/\sqrt{\varepsilon}$，和 §4 测到的几毫米对得上。所以"香蕉"不是画出来的效果，是 bounce + 竖直漂移的必然结果。</p>
+<h3 id="5.3-%E8%83%BD%E9%87%8F%E9%AB%98%E4%B8%BA%E4%BB%80%E4%B9%88%E5%81%8F%E5%BE%97%E8%BF%9C">5.3 能量高为什么偏得远<a class="anchor-link" href="#5.3-%E8%83%BD%E9%87%8F%E9%AB%98%E4%B8%BA%E4%BB%80%E4%B9%88%E5%81%8F%E5%BE%97%E8%BF%9C">¶</a></h3><p>$\rho_L=m v_\perp/(qB)$ 随能量增大。导心近似要求 $\rho_L$ 远小于磁场变化尺度；能量高了 $\rho_L$ 变大，漂移项（$\propto v^2$）也更显著，轨道自然离磁力线更远。§4 的线性增长就是这个。</p>
+<h3 id="5.4-%E4%B8%A4%E5%A5%97%E7%A7%AF%E5%88%86%E5%99%A8%E5%90%84%E7%AE%A1%E4%BB%80%E4%B9%88">5.4 两套积分器各管什么<a class="anchor-link" href="#5.4-%E4%B8%A4%E5%A5%97%E7%A7%AF%E5%88%86%E5%99%A8%E5%90%84%E7%AE%A1%E4%BB%80%E4%B9%88">¶</a></h3><p>Boris 保能量、适合看回旋和短轨道，但不严格保 $\mu$，长轨道会漂；导心把 $\mu$ 当守恒量、方程光滑，用 RK4 积适合 bounce 尺度。两者短时一致（§4.1），长时分工，这是数值上比较稳妥的搭配。</p>
 </div>
 </div>
 </div>
@@ -8217,14 +8196,14 @@ $$\frac{v_\parallel^2}{v^2} &lt; 1 - \frac{B_{min}}{B_{max}} \quad \Rightarrow \
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="6.-%E5%90%8E%E7%BB%AD%E5%B7%A5%E4%BD%9C%EF%BC%88%E5%A4%A7%E5%88%9B%E6%96%B9%E5%90%91%EF%BC%89">6. 后续工作（大创方向）<a class="anchor-link" href="#6.-%E5%90%8E%E7%BB%AD%E5%B7%A5%E4%BD%9C%EF%BC%88%E5%A4%A7%E5%88%9B%E6%96%B9%E5%90%91%EF%BC%89">¶</a></h2><p>本项目已为后续研究预留接口，可沿以下方向扩展（与老师拟布置的大创方向一致）：</p>
-<ol>
-<li><strong>真实 EFIT 平衡</strong>：<code>src/fields.py</code> 的磁场为 callable 接口，可替换为读取 EFIT <code>g-eqdsk</code> 文件重建的 Grad-Shafranov 平衡，研究实际位形（含 Shafranov 位移、三角形变）中的轨道。</li>
-<li><strong>径向电场与 E×B 漂移</strong>：Boris 推进器已支持任意 <code>E(x,y,z)</code>；导心方程可加入 $E\times B$ 与极化漂移，研究电场对约束和旋转的影响。</li>
-<li><strong>碰撞与输运</strong>：在粒子推进中加入 pitch-angle 散射/蒙特卡洛碰撞算子，从单粒子轨道过渡到经典/新经典输运。</li>
-<li><strong>湍流与多粒子</strong>：进一步发展为 PIC 或 gyrokinetic 框架，研究湍流输运。</li>
-</ol>
-<p>当前代码的模块化结构（fields / particles / integrators / diagnostics）使上述扩展只需替换或新增相应模块，不影响已有验证。</p>
+<h2 id="6.-%E5%90%8E%E9%9D%A2%E6%83%B3%E5%81%9A%E4%BB%80%E4%B9%88">6. 后面想做什么<a class="anchor-link" href="#6.-%E5%90%8E%E9%9D%A2%E6%83%B3%E5%81%9A%E4%BB%80%E4%B9%88">¶</a></h2><p>这个项目把接口留得比较松，接下来可以往这几个方向扩（也是大创可能的选题）：</p>
+<ul>
+<li>把解析磁场换成读 EFIT 平衡（<code>fields.py</code> 是 callable 接口，换实现就行），看真实位形（Shafranov 位移、三角形变）里的轨道；</li>
+<li>加径向电场和 $E\times B$ 漂移（Boris 本来就接受任意 $\mathbf E$，导心方程补漂移项）；</li>
+<li>加碰撞（pitch-angle 散射），从单粒子往输运走；</li>
+<li>再往后是多粒子 / PIC。</li>
+</ul>
+<p>目前这些都是"接口留好、还没做"，不算是本项目的结果。</p>
 </div>
 </div>
 </div>
@@ -8235,16 +8214,8 @@ $$\frac{v_\parallel^2}{v^2} &lt; 1 - \frac{B_{min}}{B_{max}} \quad \Rightarrow \
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="7.-%E6%80%BB%E7%BB%93">7. 总结<a class="anchor-link" href="#7.-%E6%80%BB%E7%BB%93">¶</a></h2><p>本汇报完成了以下工作：</p>
-<ol>
-<li>推导了带电粒子运动方程的无量纲形式，明确了关键参数 $\rho_*$ 的物理意义。</li>
-<li>画出了托卡马克磁力线、极向面投影与绕组（1/q）图，并叠加磁面。</li>
-<li>通过改变 pitch angle，展示了 passing 到 trapped 轨道的转变，并验证临界 $\xi_c\approx0.277$。</li>
-<li>通过改变粒子能量，展示了轨道与磁力线偏移的增大趋势（eV 标注）。</li>
-<li>短时定量对比了全粒子 Boris 与导心轨道，说明长轨道采用导心的原因。</li>
-<li>从磁矩守恒、磁镜反射、漂移运动等角度解释了轨道特征的成因。</li>
-</ol>
-<p>这些结果为后续研究真实平衡位形、电场效应和碰撞输运（大创方向）打下了基础。</p>
+<h2 id="7.-%E5%B0%8F%E7%BB%93">7. 小结<a class="anchor-link" href="#7.-%E5%B0%8F%E7%BB%93">¶</a></h2><p>回头看，这个项目主要把几件事弄明白了：无量纲化后 $\rho_*$ 控制导心近似的好坏；磁力线绕组斜率给出 $q$；捕获分界 $\xi_c=\sqrt{1-B_{min}/B_{max}}$ 能被数值复现；香蕉宽度随能量线性增长且和 $q\rho_L/\sqrt{\varepsilon}$ 同量级；Boris 和导心短时一致、长时分工。</p>
+<p>数值上每个结论我都配了独立的检查（能量、$\mu$ 收敛、二阶收敛、绕组 $q$、分界、Boris/导心对比），不是只画好看的图。局限也很清楚：单粒子、静场、非平衡，离真正的等离子体模拟还有距离，但作为把轨道物理啃一遍的练习，我觉得达到目的了。</p>
 </div>
 </div>
 </div>
